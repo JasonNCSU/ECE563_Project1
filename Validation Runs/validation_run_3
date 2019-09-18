@@ -1,0 +1,84 @@
+  ===== Simulator configuration =====
+  BLOCKSIZE:                        16
+  L1_SIZE:                          1024
+  L1_ASSOC:                         1
+  L2_SIZE:                          0
+  L2_ASSOC:                         0
+  L2_DATA_BLOCKS:                   0
+  L2_ADDRESS_TAGS:                  0
+  trace_file:                       gcc_trace.txt
+
+===== L1 contents =====
+set	0:	1000c5 N	||
+set	1:	100147 D	||
+set	2:	100147 D	||
+set	3:	100147 D	||
+set	4:	1000c5 N	||
+set	5:	1000c5 N	||
+set	6:	100147 D	||
+set	7:	1000c5 N	||
+set	8:	1000c5 N	||
+set	9:	1000bd D	||
+set	10:	1000bd N	||
+set	11:	1000c5 N	||
+set	12:	1000d9 D	||
+set	13:	1000c5 N	||
+set	14:	1000d6 N	||
+set	15:	1000d9 D	||
+set	16:	1ec0ce D	||
+set	17:	10007d N	||
+set	18:	10007d N	||
+set	19:	1000d9 D	||
+set	20:	10007d N	||
+set	21:	10010a N	||
+set	22:	1000d5 N	||
+set	23:	10009d N	||
+set	24:	1000f9 N	||
+set	25:	1000d5 N	||
+set	26:	100146 D	||
+set	27:	10009d N	||
+set	28:	10009d N	||
+set	29:	10009d N	||
+set	30:	100146 D	||
+set	31:	1000fc D	||
+set	32:	100146 D	||
+set	33:	100146 D	||
+set	34:	1000e0 D	||
+set	35:	100146 D	||
+set	36:	100111 D	||
+set	37:	1000e0 N	||
+set	38:	100146 D	||
+set	39:	100146 D	||
+set	40:	1000c7 D	||
+set	41:	1000c7 N	||
+set	42:	100146 D	||
+set	43:	100004 N	||
+set	44:	100004 N	||
+set	45:	100004 N	||
+set	46:	100004 N	||
+set	47:	100004 N	||
+set	48:	100004 N	||
+set	49:	100004 N	||
+set	50:	100004 N	||
+set	51:	100004 N	||
+set	52:	100004 N	||
+set	53:	100004 N	||
+set	54:	100004 N	||
+set	55:	1000d5 N	||
+set	56:	1000c7 D	||
+set	57:	1000d5 N	||
+set	58:	100146 D	||
+set	59:	100146 D	||
+set	60:	100146 D	||
+set	61:	1000c6 D	||
+set	62:	1000c6 D	||
+set	63:	1000c6 D	||
+
+===== Simulation Results =====
+a. number of L1 reads:			63640
+b. number of L1 read misses:		10728
+c. number of L1 writes:			36360
+d. number of L1 write misses:		8493
+e. L1 miss rate:			0.1922
+f. number of writebacks from L1 memory:	9802
+g. total memory traffic:		29023

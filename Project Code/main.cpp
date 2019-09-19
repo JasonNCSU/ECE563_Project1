@@ -20,6 +20,9 @@ int main(int argc, char *argv[]) {
     int l2_addr_tags = atoi(argv[7]);
     char *trace_file = argv[8];
 
+    //Creates the cache object
+    Cache myCache = new Cache(block_size, l1_size, l1_assoc, 0, 0, 0, 0);
+
     //convert trace_file from char array to String
     int trace_size = sizeof(trace_file) / sizeof(char);
     string trace_filename = "";
@@ -27,33 +30,44 @@ int main(int argc, char *argv[]) {
         trace_filename += trace_file[i];
     }
 
-    trace_filename.at()
-    //Creates the cache object
-    cache myCache = new cache(block_size, l1_size, 0, 0, 0, 0);
-
     //TODO: trace file contains r/w + [tag, index, BO]. Read in trace_file and issue read/write commands
     //Reads in trace file
     char data = '';
     string data_segment = "";
     ifstream input(trace_filename);
-    int char_count = 0;
     while (!input.eof()) {
-        if (char_count == 10) {
-            char_count = 0;
+        input >> data;
+
+        if (data == '\n') {
             //TODO: determine read/write stuff
             if (data_segment.at(0) == 'r') {
                 //TODO read logic
-                myCachce.read(data_segment.substr(2, 8));
+                myCachce.read(data_segment.substr(2, data_segment.length() - 2));
             } else {
                 //TODO write logic
-                myCachce.write(data_segment.substr(2, 8));
+                myCachce.write(data_segment.substr(2, data_segment.length() - 2));
             }
             data_segment = "";
+        } else {
+            input >> data;
+            data_segment += data;
         }
 
-        input >> data;
-        data_segment += data;
 
-        char_count++;
+//        int char_count = 0;
+//        if (char_count == 10) {
+//            char_count = 0;
+//            //TODO: determine read/write stuff
+//            if (data_segment.at(0) == 'r') {
+//                //TODO read logic
+//                myCachce.read(data_segment.substr(2, 8));
+//            } else {
+//                //TODO write logic
+//                myCachce.write(data_segment.substr(2, 8));
+//            }
+//            data_segment = "";
+//        }
+//
+//        char_count++;
     }
 }

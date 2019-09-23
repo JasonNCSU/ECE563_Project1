@@ -6,10 +6,12 @@
 #ifndef ECE563_PROJECT1A_MAIN_H
 #define ECE563_PROJECT1A_MAIN_H
 
+#include "cache.h"
+#include <string>
 
 class main {
-public:
-    int block_size = atoi(argv[1]);
+private:
+    int block_size;
     int l1_size;
     int l1_assoc;
     int l2_size;
@@ -18,8 +20,10 @@ public:
     int l2_addr_tags;
     char *trace_file;
 
-    string trace_filename;
-    string data_segment;
+    Cache cache;
+
+    std::string trace_filename;
+    std::string data_segment;
     unsigned int trace_size;
     char data;
 };

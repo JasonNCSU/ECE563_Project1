@@ -4,19 +4,19 @@
 //
 
 #include "cache.h"
-#include <stdlib.h>
 #include <string>
 #include <iomanip>
-using namespace std;
+#include <cmath>
+#include <iostream>
 
-//CACHE Constructor we don't want
-CACHE::cache() {
+//Cache Constructor we don't want
+Cache::Cache(void) {
 
 }
-//CACHE Constructor we don't want
+//Cache Constructor we don't want
 
-//CACHE Constructor we want
-CACHE::cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, char *file) {
+//Cache Constructor we want
+Cache::Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, char *file) {
     blocksize = bs;
     l1_size = l1s;
     l1_assoc = l1a;
@@ -27,24 +27,31 @@ CACHE::cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, cha
     l2_addr_tags = l2at;
     trace_file = file;
 
-    cache_structure = new CACHEWAY[l1_size * l1_assoc];
+    cache_structure = new Cacheway[l1_length * l1_assoc];
+
+    block_bits = 0;
+    index_bits = 0;
+    index_addr = 0;
+    tag_addr = 0;
 
     l1_reads = 0;
     l1_reads_miss = 0;
     l1_writes = 0;
     l1_writes_miss = 0;
     l1_write_backs = 0;
+    l1_miss_rate = 0;
+    l1_memory_traffic = 0;
 
     nextLevel = nullptr;
 
-    CACHE::lruInitializer();
+    Cache::lruInitializer();
 }
-//CACHE Constructor we want
+//Cache Constructor we want
 
 //Initializes cache data structure
-void CACHE::lruInitializer() {
-    for (int i = 0; i < l1_size; i++) {
-        for (int j = 0; j < l1_assoc; j++) {
+void Cache::lruInitializer(void) {
+    for (unsigned int i = 0; i < l1_length; i++) {
+        for (unsigned int j = 0; j < l1_assoc; j++) {
             cache_structure[i + j * l1_length].lru = j;
         }
     }
@@ -52,94 +59,92 @@ void CACHE::lruInitializer() {
 //Initializes cache data structure
 
 //handles what to do with cpu request
-void CACHE::cpuRequest(char mode, unsigned long hex) {
-    CACHE::hexManipulator(hex);
+void Cache::cpuRequest(char mode, unsigned long hex) {
+    Cache::hexManipulator(hex);
     bool temp;
     if (mode == 'r') {
-        //TODO read data path
         l1_reads++;
-        temp = CACHE::readFromAddress();
+        temp = Cache::readFromAddress();
     } else {
-        //TODO write data path
         l1_writes++;
-        temp = CACHE::writeToAddress();
+        temp = Cache::writeToAddress();
     }
     if (!temp) {
-        cout << "FAILED";
+        std::cout << "FAILED";
     }
 }
 //handles what to do with cpu request
 
 //Hex manipulation
-void CACHE::hexManipulator(unsigned long hex) {
-    block_bits = CACHE::getBlockOffset();
-    index_bits = CACHE::getIndexBitSize();
-    block_offset = CACHE:::parseBlockOffset(hex)
-    index = CACHE::parseIndex(hex);
-    tag = CACHE::parseTag(hex);
+void Cache::hexManipulator(unsigned long hex) {
+    block_bits = Cache::getBlockOffset();
+    index_bits = Cache::getIndexBitSize();
+    index_addr = Cache::parseIndex(hex);
+    tag_addr = Cache::parseTag(hex);
 }
 //Hex manipulation
 
 //Read Function Call
-bool CACHE::readFromAddress() {
+bool Cache::readFromAddress(void) {
     bool hit = false;
     unsigned int hit_index = 0;
     unsigned int lru_max = 0;
 
-    for (int i = 0; i < l1_assoc; i++) {
-        if (cache_structure[index + i * l1_length].tag == tag) {
+    for (unsigned int i = 0; i < l1_assoc; i++) {
+        if (cache_structure[index_addr + i * l1_length].tag == tag_addr) {
             hit = true;
-            hit_index = index + i * l1_length;
+            hit_index = index_addr + i * l1_length;
             break;
         }
     }
 
     if (hit) {
         lru_max = cache_structure[hit_index].lru;
-        for (int i = 0; i < l1_assoc; i++) {
-            if (cache_structure[index + i * l1_length].lru < lru_max) {
-                cache_structure[index + i * l1_length].lru += 1;
+        for (unsigned int i = 0; i < l1_assoc; i++) {
+            if (cache_structure[index_addr + i * l1_length].lru < lru_max) {
+                cache_structure[index_addr + i * l1_length].lru += 1;
             }
         }
         cache_structure[hit_index].lru = 0;
     } else {
         l1_reads_miss++;
 
-        for (int i = 0; i < l1_assoc; i++) {
-            if (cache_structure[index + i * l1_length].lru != (l1_assoc - 1)) {
-                cache_structure[index + i * l1_length].lru += 1;
+        for (unsigned int i = 0; i < l1_assoc; i++) {
+            if (cache_structure[index_addr + i * l1_length].lru != (l1_assoc - 1)) {
+                cache_structure[index_addr + i * l1_length].lru += 1;
             } else {
-                if (cache_structure[index + i * l1_length].dirty == 'D') {
+                if (cache_structure[index_addr + i * l1_length].dirty == 'D') {
                     l1_write_backs++;
-                    cache_structure[index + i * l1_length].dirty = 'N';
+                    cache_structure[index_addr + i * l1_length].dirty = 'N';
                 }
-                cache_structure[index + i * l1_length].tag = tag;
-                cache_structure[index + i * l1_length].lru = 0;
+                cache_structure[index_addr + i * l1_length].tag = tag_addr;
+                cache_structure[index_addr + i * l1_length].lru = 0;
             }
         }
     }
+    return true;
 }
 //Read Function Call
 
 //Write Function Call
-bool CACHE::writeToAddress() {
+bool Cache::writeToAddress(void) {
     bool hit = false;
     unsigned int hit_index = 0;
     unsigned int lru_max = 0;
 
-    for (int i = 0; i < l1_assoc; i++) {
-        if (cache_structure[index + i * l1_length].tag == tag) {
+    for (unsigned int i = 0; i < l1_assoc; i++) {
+        if (cache_structure[index_addr + i * l1_length].tag == tag_addr) {
             hit = true;
-            hit_index = index + i * l1_length;
+            hit_index = index_addr + i * l1_length;
             break;
         }
     }
 
     if (hit) {
         lru_max = cache_structure[hit_index].lru;
-        for (int i = 0; i < l1_assoc; i++) {
-            if (cache_structure[index + i * l1_length].lru < lru_max) {
-                cache_structure[index + i * l1_length].lru += 1;
+        for (unsigned int i = 0; i < l1_assoc; i++) {
+            if (cache_structure[index_addr + i * l1_length].lru < lru_max) {
+                cache_structure[index_addr + i * l1_length].lru += 1;
             }
         }
         cache_structure[hit_index].lru = 0;
@@ -147,109 +152,137 @@ bool CACHE::writeToAddress() {
     } else {
         l1_writes_miss++;
 
-        for (int i = 0; i < l1_assoc; i++) {
-            if (cache_structure[index + i * l1_length].lru != (l1_assoc - 1)) {
-                cache_structure[index + i * l1_length].lru += 1;
+        for (unsigned int i = 0; i < l1_assoc; i++) {
+            if (cache_structure[index_addr + i * l1_length].lru != (l1_assoc - 1)) {
+                cache_structure[index_addr + i * l1_length].lru += 1;
             } else {
-                if (cache_structure[index + i * l1_length].dirty == 'D') {
+                if (cache_structure[index_addr + i * l1_length].dirty == 'D') {
                     l1_write_backs++;
                 }
-                cache_structure[index + i * l1_length].tag = tag;
-                cache_structure[index + i * l1_length].lru = 0;
-                cache_structure[index + i * l1_length].dirty = 'D';
+                cache_structure[index_addr + i * l1_length].tag = tag_addr;
+                cache_structure[index_addr + i * l1_length].lru = 0;
+                cache_structure[index_addr + i * l1_length].dirty = 'D';
             }
         }
     }
+    return true;
 }
 //Write Function Call
 
 //Parse Hex Value to get Block Offset, Index, and Tag
-unsigned long CACHE::parseBlockOffset(unsigned long hex) {
+unsigned long Cache::parseBlockOffset(unsigned long hex) {
     return ((1 << block_bits) - 1) & hex;
 }
-unsigned long CACHE::parseIndex(unsigned long hex) {
+unsigned long Cache::parseIndex(unsigned long hex) {
     return ((1 << index_bits) - 1) & (hex >> block_bits);
 }
-unsigned long CACHE::parseTag(unsigned long hex) {
+unsigned long Cache::parseTag(unsigned long hex) {
     return hex >> (block_bits + index_bits);
 }
 //Parse Hex Value to get Block Offset, Index, and Tag
 
 //Getters
-unsigned int CACHE::getBlockSize() {
+unsigned int Cache::getBlockSize(void) {
     return blocksize;
 }
 
-unsigned int CACHE::getL1Size() {
-    return l1_size;
+unsigned int Cache::getBlockOffset(void) {
+    return log2(Cache::getBlockSize());
 }
 
-unsigned int CACHE::getL1Assoc() {
-    return l1_assoc;
-}
-
-unsigned int CACHE::getBlockOffset() {
-    return log2(CACHE::getBlockSize());
-}
-
-unsigned int CACHE::getIndexBitSize() {
+unsigned int Cache::getIndexBitSize(void) {
     return log2(l1_length);
-}
-
-unsigned int CACHE::getTagSize() {
-    return 32 - (CACHE::getIndexSize() + CACHE::getBlockOffset());
 }
 //Getters
 
 //Prints out desired values with formatting
-void CACHE::print() {
+void Cache::printData(void) {
+    Cache::sortData();
+
     l1_memory_traffic = l1_reads_miss + l1_writes_miss + l1_write_backs;
-    l1_miss_rate = (l1_reads_miss + l1_writes_miss) / (l1_reads + l1_writes);
-    l1_avg_access_time = l1_hit_rate + (l1_miss_rate * l1_miss_penalty);
+    l1_miss_rate = double((l1_reads_miss + l1_writes_miss)) / double((l1_reads + l1_writes));
 
     //Header to printout
-    cout << "===== Simulator configuration =====";
-    cout << "BLOCKSIZE:                        " + blocksize;
-    cout << "L1_SIZE:                          " + l1_size;
-    cout << "L1_ASSOC:                         " + l1_assoc;
-    cout << "L2_SIZE:                          " + l2_size;
-    cout << "L2_ASSOC:                         " + l2_assoc;
-    cout << "L2_DATA_BLOCKS:                   " + l2_data_blocks;
-    cout << "L2_ADDRESS_TAGS:                  " + l2_addr_tags;
-    cout << "trace_file:                       " + trace_file + "\n";
+    std::cout << "  ===== Simulator configuration =====" << std::endl;
+    std::cout << "  BLOCKSIZE:                        " << blocksize << std::endl;
+    std::cout << "  L1_SIZE:                          " << l1_size << std::endl;
+    std::cout << "  L1_ASSOC:                         " << l1_assoc << std::endl;
+    std::cout << "  L2_SIZE:                          " << l2_size << std::endl;
+    std::cout << "  L2_ASSOC:                         " << l2_assoc << std::endl;
+    std::cout << "  L2_DATA_BLOCKS:                   " << l2_data_blocks << std::endl;
+    std::cout << "  L2_ADDRESS_TAGS:                  " << l2_addr_tags << std::endl;
+    std::cout << "  trace_file:                       " << trace_file << std::endl << std::endl;
     //Header to printout
 
     //Tag Printout
-    std::stringstream sstream;
-    string tag_layout = "";
-    cout << "===== L1 contents =====";
-    for (int i = 0; i < l1_length; i++) {
-        tag_layout = "set " + i + ":";
-        for (int j = 0; j < l1_assoc; j++) {
-            sstream << std::hex << cache_structure[i + j*l1_length].tag;
-            tag_layout += "  " + sstream.str() + " " + cache_structure[i + j*l1_length].dirty + " ||";
+    std::cout << "===== L1 contents =====" << std::endl;
+    for (unsigned int i = 0; i < l1_length; i++) {
+        std::cout << std::dec << "set " << i << ":";
+        if (i > 999) {
+            std::cout << std::left << std::setfill(' ') << std::setw(3) << " ";
+        } else if (i > 99) {
+            std::cout << std::left << std::setfill(' ') << std::setw(4) << " ";
+        } else if (i > 9) {
+            std::cout << std::left << std::setfill(' ') << std::setw(1) << " ";
+        } else {
+            std::cout << std::left << std::setfill(' ') << std::setw(2) << " ";
         }
-        cout << tag_layout;
+        for (unsigned int j = 0; j < l1_assoc; j++) {
+            std::cout << std::hex << cache_structure[i + j * l1_length].tag << " " << cache_structure[i + j * l1_length].dirty << " ||  ";
+        }
+        std::cout << std::endl;
     }
     //Tag Printout
 
     //Footer to printout
-    cout << "===== Simulation Results =====";
-    cout << "a. number of L1 reads:" + l1_reads;
-    cout << "b. number of L1 read misses:		" + l1_reads_miss;
-    cout << "c. number of L1 writes:			" + l1_writes;
-    cout << "d. number of L1 write misses:		" + l1_writes_miss;
-    cout << "e. L1 miss rate:			" + l1_miss_rate;
-    cout << "f. number of writebacks from L1 memory:	" + l1_write_backs;\
-    cout << "g. total memory traffic:		" + l1_reads_miss + l1_writes_miss + l1_write_backs;
+    std::cout << std::dec << std::endl;
+    std::cout << "===== Simulation Results =====" << std::endl;
+    std::cout << "a. number of L1 reads:             " << l1_reads << std::endl;
+    std::cout << "b. number of L1 read misses:		    " << l1_reads_miss << std::endl;
+    std::cout << "c. number of L1 writes:			" << l1_writes << std::endl;
+    std::cout << "d. number of L1 write misses:		" << l1_writes_miss << std::endl;
+    std::cout << "e. L1 miss rate:			" << std::setprecision(4) << std::fixed << l1_miss_rate << std::endl;
+    std::cout << "f. number of writebacks from L1 memory:	" << l1_write_backs << std::endl;
+    std::cout << "g. total memory traffic:		" << l1_memory_traffic << std::endl;
     //Footer to printout
 }
 //Prints out desired values with formatting
 
+void Cache::sortData(void) {
+    unsigned int min_idx;
+    unsigned long temp_tag = 0;
+    unsigned int temp_lru = 0;
+    char temp_dirty = ' ';
+
+    for (unsigned int i = 0; i < l1_length; i++) {
+        for (unsigned int j = 0; j < l1_assoc - 1; j++) {
+            min_idx = j;
+            for (unsigned int k = j + 1; k < l1_assoc; k++) {
+                if (cache_structure[i + k * l1_length].lru < cache_structure[i + min_idx * l1_length].lru) {
+                    min_idx = k;
+                }
+            }
+            //swap here!
+            //swap the tag and dirty bit as well
+            //tag is unsigned long
+            temp_tag = cache_structure[i + j * l1_length].tag;
+            cache_structure[i + j * l1_length].tag = cache_structure[i + min_idx * l1_length].tag;
+            cache_structure[i + min_idx * l1_length].tag = temp_tag;
+            //lru is unsigned int
+            temp_lru = cache_structure[i + j * l1_length].lru;
+            cache_structure[i + j * l1_length].lru = cache_structure[i + min_idx * l1_length].lru;
+            cache_structure[i + min_idx * l1_length].lru = temp_lru;
+            //dirty is char
+            temp_dirty = cache_structure[i + j * l1_length].dirty;
+            cache_structure[i + j * l1_length].dirty = cache_structure[i + min_idx * l1_length].dirty;
+            cache_structure[i + min_idx * l1_length].dirty = temp_dirty;
+        }
+    }
+}
 
 //=========================================================================================
 //Cache way class constructor
-CACHEWAY::cacheway() {
+Cacheway::Cacheway() {
     tag = 0;
     lru = 0;
     dirty = 'N';

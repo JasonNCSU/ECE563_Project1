@@ -1,11 +1,11 @@
 CC = g++
-#OPT = -O3
-OPT = -g
+#OPT = -O3 -std=c++11
+OPT = -g -std=c++11
 WARN = -Wall
 CFLAGS = $(OPT) $(WARN) $(INC) $(LIB)
 
 # List all your .cc/.cpp files here (source files, excluding header files)
-SIM_SRC = sim_cache.cpp
+SIM_SRC = cache.cpp, main.cpp
 
 # List corresponding compiled object files here (.o files)
 SIM_OBJ = sim_cache.o

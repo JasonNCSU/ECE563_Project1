@@ -13,8 +13,8 @@ private:
     void lruInitializer();
     void cpuRequest(char mode, unsigned long hex);
     void hexManipulator(unsigned long hex);
-    bool readFromAddress(unsigned long add);
-    bool writeToAddress(unsigned long add);
+    bool readFromAddress();
+    bool writeToAddress();
 
     unsigned int getBlockSize();
     unsigned int getL1Size();
@@ -43,7 +43,7 @@ private:
     unsigned int l1_writes;
     unsigned int l1_writes_miss;
     unsigned int l1_write_backs;
-    unsigned int l1_miss_rate; //(r_miss + w_miss)/(reads + writes)
+    unsigned int l1_miss_rate; //should be (r_miss + w_miss)/(reads + writes)
     unsigned int l1_memory_traffic; //should match r_miss + w_miss + write_backs
 
     unsigned int block_bits;
@@ -51,13 +51,10 @@ private:
     unsigned long block_offset;
     unsigned long index;
     unsigned long tag;
-    string trace_filename;
-    string data_segment;
-    unsigned int trace_size;
-    char data;
 
     CACHE *nextLevel;
 public:
+    cache();
     cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at);
 };
 
@@ -67,7 +64,7 @@ public:
 
     unsigned long tag;
     unsigned int lru;
-    unsigned int dirty;
+    char dirty;
 };
 
 #endif //ECE563_PROJECT1A_CACHE_H

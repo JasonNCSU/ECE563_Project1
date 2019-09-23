@@ -17,6 +17,11 @@ public:
     int l2_data_blocks;
     int l2_addr_tags;
     char *trace_file;
+
+    string trace_filename;
+    string data_segment;
+    unsigned int trace_size;
+    char data;
 };
 
 

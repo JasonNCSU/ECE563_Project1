@@ -22,8 +22,10 @@ int main(int argc, char **argv) {
     int l2_addr_tags = strtol(argv[7], nullptr, 10);
     char *trace_file = argv[8];
 
-    //initializes the cache object
+    //initializes the cache objects
     Cache cache(block_size, l1_size, l1_assoc, l2_size, l2_assoc, l2_data_blocks, l2_addr_tags, trace_file);
+    cache.l2Initializer();
+    cache.lruInitializer();
 
     //Reads in trace file
     string data_segment;

@@ -70,10 +70,13 @@ Cache::Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, cha
     l1_memory_traffic = 0;
 
     nextLevel = nullptr;
-
-    Cache::lruInitializer();
 }
 //Cache Constructor we want
+
+void Cache::l2Initializer(void) {
+    nextLevel = new Cache(blocksize, l2_size, l2_assoc, 0, 0, l2_data_blocks, l2_addr_tags, trace_file);
+    nextLevel->lruInitializer();
+}
 
 //Initializes cache data structure
 void Cache::lruInitializer(void) {
@@ -238,7 +241,7 @@ void Cache::printData(void) {
     cout << "  trace_file:                       " << trace_file << endl << endl;
     //Header to printout
 
-    //Tag Printout
+    //L1 Tag Printout
     cout << "===== L1 contents =====" << endl;
     for (unsigned int i = 0; i < l1_length; i++) {
         cout << dec << "set " << i << ":";
@@ -256,7 +259,27 @@ void Cache::printData(void) {
         }
         cout << endl;
     }
-    //Tag Printout
+    //L1 Tag Printout
+
+    //L2 Tag Printout
+    cout << "===== L2 contents =====" << endl;
+    for (unsigned int i = 0; i < nextLevel->l1_length; i++) {
+        cout << dec << "set " << i << ":";
+        if (i > 999) {
+            cout << left << setfill(' ') << setw(3) << " ";
+        } else if (i > 99) {
+            cout << left << setfill(' ') << setw(4) << " ";
+        } else if (i > 9) {
+            cout << left << setfill(' ') << setw(1) << " ";
+        } else {
+            cout << left << setfill(' ') << setw(2) << " ";
+        }
+        for (unsigned int j = 0; j < nextLevel->l1_assoc; j++) {
+            cout << hex << nextLevel->cache_structure[i + j * nextLevel->l1_length].tag << " " << nextLevel->cache_structure[i + j * nextLevel->l1_length].dirty << " ||  ";
+        }
+        cout << endl;
+    }
+    //L2 Tag Printout
 
     //Footer to printout
     cout << dec << endl;
@@ -267,7 +290,21 @@ void Cache::printData(void) {
     cout << "d. number of L1 write misses:		" << l1_writes_miss << endl;
     cout << "e. L1 miss rate:			" << setprecision(4) << fixed << l1_miss_rate << endl;
     cout << "f. number of writebacks from L1 memory:	" << l1_write_backs << endl;
-    cout << "g. total memory traffic:		" << l1_memory_traffic << endl;
+    cout << "g. number of L2 reads:			" << l2_reads << endl;
+    cout << "h. number of L2 read misses:		 " << l2_reads_miss << endl;
+    cout << "i. number of L2 writes:			 " << l2_writes << endl;
+    cout << "j. number of L2 write misses:		 " << l2_writes_miss << endl;
+    if (l2_data_blocks != 1) {
+        cout << "k. number of L2 sector misses: 		 " << l2_sectors_miss << endl;
+        cout << "l. number of L2 cache block misses: 	 " << l2_caches_miss << endl;
+        cout << "n. L2 miss rate:			 " << setprecision(4) << fixed << l2_miss_rate << endl;
+        cout << "o. number of writebacks from L2 memory:	 " << l2_write_backs << endl;
+        cout << "p. total memory traffic:		" << l1_memory_traffic << endl;
+    } else {
+        cout << "k. L2 miss rate:                 " << setprecision(4) << fixed << l2_miss_rate << endl;
+        cout << "l. number of writebacks from L2 memory:       " << l2_write_backs << endl;
+        cout << "m. total memory traffic:              " << l1_memory_traffic << endl;
+    }
     //Footer to printout
 }
 //Prints out desired values with formatting
@@ -302,6 +339,31 @@ void Cache::sortData(void) {
             cache_structure[i + min_idx * l1_length].dirty = temp_dirty;
         }
     }
+
+    for (unsigned int i = 0; i < nextLevel->l1_length; i++) {
+        for (unsigned int j = 0; j < nextLevel->l1_assoc - 1; j++) {
+            min_idx = j;
+            for (unsigned int k = j + 1; k < nextLevel->l1_assoc; k++) {
+                if (nextLevel->cache_structure[i + k * nextLevel->l1_length].lru < nextLevel->cache_structure[i + min_idx * nextLevel->l1_length].lru) {
+                    min_idx = k;
+                }
+            }
+            //swap here!
+            //swap the tag and dirty bit as well
+            //tag is unsigned long
+            temp_tag = nextLevel->cache_structure[i + j * nextLevel->l1_length].tag;
+            nextLevel->cache_structure[i + j * nextLevel->l1_length].tag = nextLevel->cache_structure[i + min_idx * nextLevel->l1_length].tag;
+            nextLevel->cache_structure[i + min_idx * nextLevel->l1_length].tag = temp_tag;
+            //lru is unsigned int
+            temp_lru = nextLevel->cache_structure[i + j * nextLevel->l1_length].lru;
+            nextLevel->cache_structure[i + j * nextLevel->l1_length].lru = nextLevel->cache_structure[i + min_idx * nextLevel->l1_length].lru;
+            nextLevel->cache_structure[i + min_idx * nextLevel->l1_length].lru = temp_lru;
+            //dirty is char
+            temp_dirty = nextLevel->cache_structure[i + j * nextLevel->l1_length].dirty;
+            nextLevel->cache_structure[i + j * nextLevel->l1_length].dirty = nextLevel->cache_structure[i + min_idx * nextLevel->l1_length].dirty;
+            nextLevel->cache_structure[i + min_idx * nextLevel->l1_length].dirty = temp_dirty;
+        }
+    }
 }
 
 //=========================================================================================
@@ -312,3 +374,10 @@ Cacheway::Cacheway() {
     dirty = 'N';
 }
 //Cache way class constructor
+
+Cachesector::Cachesector() {
+    tag = 0;
+    select = 0;
+    valid = 0;
+    dirty = 'N';
+}

@@ -6,6 +6,16 @@
 #ifndef ECE563_PROJECT1A_CACHE_H
 #define ECE563_PROJECT1A_CACHE_H
 
+class Cachesector {
+public:
+    Cachesector(void);
+
+    unsigned long tag;
+    unsigned int select;
+    unsigned int valid;
+    char dirty;
+};
+
 class Cacheway {
 public:
     Cacheway(void);
@@ -17,7 +27,6 @@ public:
 
 class Cache {
 private:
-    void lruInitializer(void);
     void hexManipulator(unsigned long hex);
     bool readFromAddress(void);
     bool writeToAddress(void);
@@ -40,6 +49,8 @@ private:
     char *trace_file;
     Cacheway *cache_structure;
 
+    Cache *nextLevel;
+
     unsigned int l1_reads;
     unsigned int l1_reads_miss;
     unsigned int l1_writes;
@@ -53,10 +64,12 @@ private:
     unsigned long index_addr;
     unsigned long tag_addr;
 
-    Cache *nextLevel;
 public:
     Cache(void);
     Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, char *file);
+
+    void l2Initializer(void);
+    void lruInitializer(void);
     void cpuRequest(char mode, unsigned long hex);
     void printData(void);
 };

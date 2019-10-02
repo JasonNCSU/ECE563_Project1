@@ -1,0 +1,84 @@
+  ===== Simulator configuration =====
+  BLOCKSIZE:                        16
+  L1_SIZE:                          1024
+  L1_ASSOC:                         1
+  L2_SIZE:                          0
+  L2_ASSOC:                         0
+  L2_DATA_BLOCKS:                   0
+  L2_ADDRESS_TAGS:                  0
+  trace_file:                       perl_trace.txt
+
+===== L1 contents =====
+set	0:	10007b N	||
+set	1:	10007b N	||
+set	2:	10007b N	||
+set	3:	100035 N	||
+set	4:	1000b4 D	||
+set	5:	10007b N	||
+set	6:	1000b0 N	||
+set	7:	1000b0 N	||
+set	8:	10006f N	||
+set	9:	100072 D	||
+set	10:	100058 D	||
+set	11:	10006f N	||
+set	12:	10006f N	||
+set	13:	10007a N	||
+set	14:	10007a N	||
+set	15:	1000b4 D	||
+set	16:	10007b N	||
+set	17:	10007a N	||
+set	18:	10006f D	||
+set	19:	100079 N	||
+set	20:	10007a N	||
+set	21:	1000ad D	||
+set	22:	10007a N	||
+set	23:	10007a D	||
+set	24:	1ec0cf D	||
+set	25:	1000b3 D	||
+set	26:	10006f N	||
+set	27:	10006f N	||
+set	28:	10007a N	||
+set	29:	10007a N	||
+set	30:	10007a N	||
+set	31:	1000b3 D	||
+set	32:	10003c D	||
+set	33:	10006f D	||
+set	34:	1000b3 D	||
+set	35:	1000ad N	||
+set	36:	1000b1 D	||
+set	37:	1000b3 D	||
+set	38:	1ec0cf D	||
+set	39:	1ec0cf D	||
+set	40:	10007a N	||
+set	41:	10007a N	||
+set	42:	10007a N	||
+set	43:	100008 N	||
+set	44:	100008 N	||
+set	45:	10007a N	||
+set	46:	1ec0cf D	||
+set	47:	100064 N	||
+set	48:	1000b3 D	||
+set	49:	10004e D	||
+set	50:	1000b2 N	||
+set	51:	1000b3 D	||
+set	52:	100031 N	||
+set	53:	10004e N	||
+set	54:	100031 N	||
+set	55:	10004c D	||
+set	56:	10007a N	||
+set	57:	10007a D	||
+set	58:	10007a N	||
+set	59:	1ec0ce N	||
+set	60:	1ec0ce N	||
+set	61:	1000b3 D	||
+set	62:	1000b3 D	||
+set	63:	1000b3 D	||
+
+===== Simulation Results =====
+a. number of L1 reads:			70107
+b. number of L1 read misses:		19310
+c. number of L1 writes:			29893
+d. number of L1 write misses:		6684
+e. L1 miss rate:			0.2599
+f. number of writebacks from L1 memory:	9211
+g. total memory traffic:		35205

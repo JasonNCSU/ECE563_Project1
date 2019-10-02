@@ -1,0 +1,52 @@
+  ===== Simulator configuration =====
+  BLOCKSIZE:                        16
+  L1_SIZE:                          1024
+  L1_ASSOC:                         2
+  L2_SIZE:                          0
+  L2_ASSOC:                         0
+  L2_DATA_BLOCKS:                   0
+  L2_ADDRESS_TAGS:                  0
+  trace_file:                       perl_trace.txt
+
+===== L1 contents =====
+set	0:	2000f6 N	||	2000da N	||
+set	1:	2000df D	||	2000f6 N	||
+set	2:	2000f6 N	||	200168 D	||
+set	3:	20015b N	||	200163 N	||
+set	4:	200163 D	||	200168 D	||
+set	5:	2000f6 N	||	20006a D	||
+set	6:	200160 N	||	2000f6 N	||
+set	7:	200160 N	||	3d819f D	||
+set	8:	2000de N	||	2000f6 N	||
+set	9:	2000f5 N	||	2000e4 D	||
+set	10:	2000b0 D	||	2000de N	||
+set	11:	200011 N	||	2000de N	||
+set	12:	200011 N	||	2000de N	||
+set	13:	2000f5 N	||	2000f4 N	||
+set	14:	2000f4 N	||	3d819f D	||
+set	15:	2000c9 N	||	200168 D	||
+set	16:	2000f6 N	||	200168 D	||
+set	17:	20009d D	||	2000f4 N	||
+set	18:	2000de D	||	2000f4 N	||
+set	19:	2000f2 N	||	20015a D	||
+set	20:	2000f4 N	||	200063 N	||
+set	21:	20009d N	||	200099 N	||
+set	22:	200063 N	||	2000f4 N	||
+set	23:	2000f4 D	||	200099 D	||
+set	24:	2000f5 N	||	3d819e D	||
+set	25:	2000f5 D	||	200167 D	||
+set	26:	2000f5 N	||	2000de N	||
+set	27:	2000de N	||	3d819d N	||
+set	28:	3d819d N	||	2000f4 N	||
+set	29:	2000f4 N	||	200167 D	||
+set	30:	2000f4 N	||	20015a D	||
+set	31:	200167 D	||	2000e9 N	||
+
+===== Simulation Results =====
+a. number of L1 reads:			70107
+b. number of L1 read misses:		16426
+c. number of L1 writes:			29893
+d. number of L1 write misses:		5930
+e. L1 miss rate:			0.2236
+f. number of writebacks from L1 memory:	8252
+g. total memory traffic:		30608

@@ -26,7 +26,6 @@ private:
     unsigned int getBlockSize(void);
     unsigned int getBlockOffset(void);
     unsigned int getIndexBitSize(void);
-    unsigned long parseBlockOffset(unsigned long hex);
     unsigned long parseIndex(unsigned long hex);
     unsigned long parseTag(unsigned long hex);
 

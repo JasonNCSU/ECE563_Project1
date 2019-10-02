@@ -1,0 +1,21 @@
+  ===== Simulator configuration =====
+  BLOCKSIZE:                        16
+  L1_SIZE:                          1024
+  L1_ASSOC:                         64
+  L2_SIZE:                          0
+  L2_ASSOC:                         0
+  L2_DATA_BLOCKS:                   0
+  L2_ADDRESS_TAGS:                  0
+  trace_file:                       gcc_trace.txt
+
+===== L1 contents =====
+set	0:	4003822 D	||	4000136 N	||	4000135 N	||	4000134 N	||	4000133 N	||	4000132 N	||	4000131 N	||	4000130 N	||	400012f N	||	400012e N	||	400012d N	||	400012c N	||	400012b N	||	40051a0 D	||	4004464 D	||	40051a4 D	||	4003f1f D	||	40051a1 D	||	4004824 N	||	4004295 N	||	4002f4a N	||	40031e8 D	||	40031e9 D	||	4003147 N	||	4003825 D	||	400358e N	||	4003824 N	||	7b03390 D	||	40051a3 D	||	4002a62 D	||	40051a2 D	||	4003140 N	||	4003144 N	||	4001f4a N	||	4001f29 N	||	4002f49 D	||	400519f D	||	40031f8 D	||	4003148 N	||	4001f4e N	||	4001f2d N	||	4003577 N	||	4002f71 D	||	4002763 N	||	400275d N	||	40051c9 D	||	400314b N	||	40051ca D	||	4001f52 N	||	4001f30 N	||	4003e58 N	||	4003559 N	||	4003587 D	||	400275c N	||	40051c8 D	||	4003158 D	||	400519e D	||	400275f N	||	4002758 N	||	4001f51 N	||	400314a N	||	4002762 N	||	40051ab D	||	40051ac D	||
+
+===== Simulation Results =====
+a. number of L1 reads:			63640
+b. number of L1 read misses:		6512
+c. number of L1 writes:			36360
+d. number of L1 write misses:		7658
+e. L1 miss rate:			0.1417
+f. number of writebacks from L1 memory:	8330
+g. total memory traffic:		22500

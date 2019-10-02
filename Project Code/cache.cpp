@@ -196,10 +196,7 @@ bool Cache::writeToAddress(void) {
 }
 //Write Function Call
 
-//Parse Hex Value to get Block Offset, Index, and Tag
-unsigned long Cache::parseBlockOffset(unsigned long hex) {
-    return ((1 << block_bits) - 1) & hex;
-}
+//Parse Hex Value to get Index and Tag
 unsigned long Cache::parseIndex(unsigned long hex) {
     return ((1 << index_bits) - 1) & (hex >> block_bits);
 }

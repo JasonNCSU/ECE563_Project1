@@ -9,9 +9,36 @@
 #include <cmath>
 #include <iostream>
 
+using namespace std;
+
 //Cache Constructor we don't want
 Cache::Cache(void) {
+    blocksize = 0;
+    l1_size = 0;
+    l1_assoc = 0;
+    l1_length = 0;
+    l2_size = 0;
+    l2_assoc = 0;
+    l2_data_blocks = 0;
+    l2_addr_tags = 0;
+    trace_file = nullptr;
 
+    cache_structure = nullptr;
+
+    block_bits = 0;
+    index_bits = 0;
+    index_addr = 0;
+    tag_addr = 0;
+
+    l1_reads = 0;
+    l1_reads_miss = 0;
+    l1_writes = 0;
+    l1_writes_miss = 0;
+    l1_write_backs = 0;
+    l1_miss_rate = 0;
+    l1_memory_traffic = 0;
+
+    nextLevel = nullptr;
 }
 //Cache Constructor we don't want
 
@@ -70,7 +97,7 @@ void Cache::cpuRequest(char mode, unsigned long hex) {
         temp = Cache::writeToAddress();
     }
     if (!temp) {
-        std::cout << "FAILED";
+        cout << "FAILED";
     }
 }
 //handles what to do with cpu request
@@ -203,47 +230,47 @@ void Cache::printData(void) {
     l1_miss_rate = double((l1_reads_miss + l1_writes_miss)) / double((l1_reads + l1_writes));
 
     //Header to printout
-    std::cout << "  ===== Simulator configuration =====" << std::endl;
-    std::cout << "  BLOCKSIZE:                        " << blocksize << std::endl;
-    std::cout << "  L1_SIZE:                          " << l1_size << std::endl;
-    std::cout << "  L1_ASSOC:                         " << l1_assoc << std::endl;
-    std::cout << "  L2_SIZE:                          " << l2_size << std::endl;
-    std::cout << "  L2_ASSOC:                         " << l2_assoc << std::endl;
-    std::cout << "  L2_DATA_BLOCKS:                   " << l2_data_blocks << std::endl;
-    std::cout << "  L2_ADDRESS_TAGS:                  " << l2_addr_tags << std::endl;
-    std::cout << "  trace_file:                       " << trace_file << std::endl << std::endl;
+    cout << "  ===== Simulator configuration =====" << endl;
+    cout << "  BLOCKSIZE:                        " << blocksize << endl;
+    cout << "  L1_SIZE:                          " << l1_size << endl;
+    cout << "  L1_ASSOC:                         " << l1_assoc << endl;
+    cout << "  L2_SIZE:                          " << l2_size << endl;
+    cout << "  L2_ASSOC:                         " << l2_assoc << endl;
+    cout << "  L2_DATA_BLOCKS:                   " << l2_data_blocks << endl;
+    cout << "  L2_ADDRESS_TAGS:                  " << l2_addr_tags << endl;
+    cout << "  trace_file:                       " << trace_file << endl << endl;
     //Header to printout
 
     //Tag Printout
-    std::cout << "===== L1 contents =====" << std::endl;
+    cout << "===== L1 contents =====" << endl;
     for (unsigned int i = 0; i < l1_length; i++) {
-        std::cout << std::dec << "set " << i << ":";
+        cout << dec << "set " << i << ":";
         if (i > 999) {
-            std::cout << std::left << std::setfill(' ') << std::setw(3) << " ";
+            cout << left << setfill(' ') << setw(3) << " ";
         } else if (i > 99) {
-            std::cout << std::left << std::setfill(' ') << std::setw(4) << " ";
+            cout << left << setfill(' ') << setw(4) << " ";
         } else if (i > 9) {
-            std::cout << std::left << std::setfill(' ') << std::setw(1) << " ";
+            cout << left << setfill(' ') << setw(1) << " ";
         } else {
-            std::cout << std::left << std::setfill(' ') << std::setw(2) << " ";
+            cout << left << setfill(' ') << setw(2) << " ";
         }
         for (unsigned int j = 0; j < l1_assoc; j++) {
-            std::cout << std::hex << cache_structure[i + j * l1_length].tag << " " << cache_structure[i + j * l1_length].dirty << " ||  ";
+            cout << hex << cache_structure[i + j * l1_length].tag << " " << cache_structure[i + j * l1_length].dirty << " ||  ";
         }
-        std::cout << std::endl;
+        cout << endl;
     }
     //Tag Printout
 
     //Footer to printout
-    std::cout << std::dec << std::endl;
-    std::cout << "===== Simulation Results =====" << std::endl;
-    std::cout << "a. number of L1 reads:             " << l1_reads << std::endl;
-    std::cout << "b. number of L1 read misses:		    " << l1_reads_miss << std::endl;
-    std::cout << "c. number of L1 writes:			" << l1_writes << std::endl;
-    std::cout << "d. number of L1 write misses:		" << l1_writes_miss << std::endl;
-    std::cout << "e. L1 miss rate:			" << std::setprecision(4) << std::fixed << l1_miss_rate << std::endl;
-    std::cout << "f. number of writebacks from L1 memory:	" << l1_write_backs << std::endl;
-    std::cout << "g. total memory traffic:		" << l1_memory_traffic << std::endl;
+    cout << dec << endl;
+    cout << "===== Simulation Results =====" << endl;
+    cout << "a. number of L1 reads:             " << l1_reads << endl;
+    cout << "b. number of L1 read misses:		    " << l1_reads_miss << endl;
+    cout << "c. number of L1 writes:			" << l1_writes << endl;
+    cout << "d. number of L1 write misses:		" << l1_writes_miss << endl;
+    cout << "e. L1 miss rate:			" << setprecision(4) << fixed << l1_miss_rate << endl;
+    cout << "f. number of writebacks from L1 memory:	" << l1_write_backs << endl;
+    cout << "g. total memory traffic:		" << l1_memory_traffic << endl;
     //Footer to printout
 }
 //Prints out desired values with formatting

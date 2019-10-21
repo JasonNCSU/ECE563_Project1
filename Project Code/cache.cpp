@@ -214,6 +214,7 @@ bool Cache::writeToAddress(void) {
                     if (nextLevel != nullptr) {
                         //take the above dirty block and send it back to L2!
                     }
+                    l1_write_backs++;
                 }
                 cache_structure[l1_index_addr + i * l1_length].tag = l1_tag_addr;
                 cache_structure[l1_index_addr + i * l1_length].lru = 0;

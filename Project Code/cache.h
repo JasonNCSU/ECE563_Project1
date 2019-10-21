@@ -32,11 +32,16 @@ private:
     bool writeToAddress(void);
     void sortData(void);
 
-    unsigned int getBlockSize(void);
     unsigned int getBlockOffset(void);
+    unsigned int getSectorBitSize(void);
     unsigned int getIndexBitSize(void);
-    unsigned long parseIndex(unsigned long hex);
-    unsigned long parseTag(unsigned long hex);
+    unsigned int getSelectionBitSize(void);
+    unsigned long parseL2Sector(unsigned long hex);
+    unsigned long parseL1Index(unsigned long hex);
+    unsigned long parseL2Index(unsigned long hex);
+    unsigned long parseL2Selection(unsigned long hex);
+    unsigned long parseL1Tag(unsigned long hex);
+    unsigned long parseL2Tag(unsigned long hex);
 
     unsigned int blocksize;
     unsigned int l1_size;
@@ -57,18 +62,33 @@ private:
     unsigned int l1_writes_miss;
     unsigned int l1_write_backs;
     double l1_miss_rate; //should be (r_miss + w_miss)/(reads + writes)
-    unsigned int l1_memory_traffic; //should match r_miss + w_miss + write_backs
+    unsigned int memory_traffic; //should match r_miss + w_miss + write_backs
+
+    double l2_miss_rate;
+    unsigned int l2_reads_miss;
+    unsigned int l2_writes_miss;
+    unsigned int l2_reads;
+    unsigned int l2_writes;
+    unsigned int l2_sector_miss;
+    unsigned int l2_cache_miss;
+    unsigned int l2_write_backs;
 
     unsigned int block_bits;
+    unsigned int l2_sector_bits;
     unsigned int index_bits;
-    unsigned long index_addr;
-    unsigned long tag_addr;
+    unsigned int l2_selection_bits;
+    unsigned long l2_sector_addr;
+    unsigned long l1_index_addr;
+    unsigned long l2_index_addr;
+    unsigned long l2_selection_addr;
+    unsigned long l1_tag_addr;
+    unsigned long l2_tag_addr;
 
 public:
     Cache(void);
     Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, char *file);
 
-    void l2Initializer(void);
+    void nextLevelInitializer(void);
     void lruInitializer(void);
     void cpuRequest(char mode, unsigned long hex);
     void printData(void);

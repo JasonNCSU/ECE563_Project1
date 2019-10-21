@@ -24,14 +24,20 @@ Cache::Cache(void) {
     trace_file = nullptr;
 
     cache_structure = nullptr;
+    cache_address = nullptr;
     cache_sectored = nullptr;
 
     block_bits = 0;
     l1_index_bits = 0;
+    l2_index_bits = 0;
     l1_index_addr = 0;
     l1_tag_addr = 0;
     l2_index_addr = 0;
     l2_tag_addr = 0;
+    l2_sector_addr = 0;
+    l2_sector_bits = 0;
+    l2_selection_addr = 0;
+    l2_selection_bits = 0;
 
     l1_reads = 0;
     l1_reads_miss = 0;
@@ -40,6 +46,15 @@ Cache::Cache(void) {
     l1_write_backs = 0;
     l1_miss_rate = 0;
     memory_traffic = 0;
+
+    l2_miss_rate = 0;
+    l2_reads_miss = 0;
+    l2_writes_miss = 0;
+    l2_reads = 0;
+    l2_writes = 0;
+    l2_sector_miss = 0;
+    l2_cache_miss = 0;
+    l2_write_backs = 0;
 
     nextLevel = nullptr;
 }
@@ -60,21 +75,27 @@ Cache::Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, cha
     //otherwise make a standard cache structure like before
     if ((l2_size == 0) && (l2_data_blocks != 0)) {
         l1_length = l1s/(bs*l1a*l2_data_blocks);
-        cache_sectored = new Cachesection[l1_length * l2_addr_tags];
-        cache_sectored->setDataSector(l1_length, l2_data_blocks);
+        cache_address = new Cachesection[l1_length * l2_addr_tags];
+        cache_sectored = new Cachesector[l1_length * l2_data_blocks];
         cache_structure = nullptr;
     } else {
         l1_length = l1s/(bs*l1a);
         cache_structure = new Cacheway[l1_length * l1_assoc];
+        cache_address = nullptr;
         cache_sectored = nullptr;
     }
 
     block_bits = 0;
     l1_index_bits = 0;
+    l2_index_bits = 0;
     l1_index_addr = 0;
     l1_tag_addr = 0;
     l2_index_addr = 0;
     l2_tag_addr = 0;
+    l2_sector_addr = 0;
+    l2_sector_bits = 0;
+    l2_selection_addr = 0;
+    l2_selection_bits = 0;
 
     l1_reads = 0;
     l1_reads_miss = 0;
@@ -83,6 +104,15 @@ Cache::Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, cha
     l1_write_backs = 0;
     l1_miss_rate = 0;
     memory_traffic = 0;
+
+    l2_miss_rate = 0;
+    l2_reads_miss = 0;
+    l2_writes_miss = 0;
+    l2_reads = 0;
+    l2_writes = 0;
+    l2_sector_miss = 0;
+    l2_cache_miss = 0;
+    l2_write_backs = 0;
 
     nextLevel = nullptr;
     if (cache_structure != nullptr) {
@@ -111,16 +141,12 @@ void Cache::lruInitializer(void) {
 //handles what to do with cpu request
 void Cache::cpuRequest(char mode, unsigned long hex) {
     Cache::hexManipulator(hex);
-    bool temp;
     if (mode == 'r') {
         l1_reads++;
-        temp = Cache::readFromAddress();
+        Cache::readFromAddress();
     } else {
         l1_writes++;
-        temp = Cache::writeToAddress();
-    }
-    if (!temp) {
-        cout << "FAILED";
+        Cache::writeToAddress();
     }
 }
 //handles what to do with cpu request
@@ -134,9 +160,12 @@ void Cache::hexManipulator(unsigned long hex) {
 
     if (nextLevel != nullptr) {
         if (l2_assoc > 1) {
-
+            l2_index_bits = nextLevel->Cache::getIndexBitSize();
+            l2_index_addr = nextLevel->Cache::parseL2Index(hex);
+            l2_tag_addr = nextLevel->Cache::parseL2Tag(hex);
         } else {
             l2_sector_bits = Cache::getSectorBitSize();
+            l2_index_bits = nextLevel->Cache::getIndexBitSize();
             l2_selection_bits = Cache::getSelectionBitSize();
             l2_sector_addr = Cache::parseL2Sector(hex);
             l2_index_addr = Cache::parseL2SectorIndex(hex);
@@ -147,8 +176,8 @@ void Cache::hexManipulator(unsigned long hex) {
 }
 //Hex manipulation
 
-//Read Function Call
-bool Cache::readFromAddress(void) {
+//L1 Read Function Call
+void Cache::readFromAddress(void) {
     bool hit = false;
     unsigned int hit_index = 0;
     unsigned int lru_max = 0;
@@ -188,12 +217,15 @@ bool Cache::readFromAddress(void) {
             }
         }
     }
-    return true;
 }
-//Read Function Call
+//L1 Read Function Call
 
-//Write Function Call
-bool Cache::writeToAddress(void) {
+//L2 Read Function Call
+
+//L2 Read Function Call
+
+//L1 Write Function Call
+void Cache::writeToAddress(void) {
     bool hit = false;
     unsigned int hit_index = 0;
     unsigned int lru_max = 0;
@@ -234,9 +266,13 @@ bool Cache::writeToAddress(void) {
             }
         }
     }
-    return true;
 }
-//Write Function Call
+//L1 Write Function Call
+
+//L2 Write Functon Call
+
+//L2 Write Function Call
+
 
 //Parse Hex Value to get Index and Tag
 unsigned long Cache::parseL2Sector(unsigned long hex) {
@@ -247,21 +283,24 @@ unsigned long Cache::parseL1Index(unsigned long hex) {
     return ((1 << l1_index_bits) - 1) & (hex >> block_bits);
 }
 unsigned long Cache::parseL2Index(unsigned long hex) {
-    return ((1 << l1_index_bits) - 1) & (hex >> (block_bits));
+    return ((1 << l2_index_bits) - 1) & (hex >> (block_bits));
 }
 unsigned long Cache::parseL2SectorIndex(unsigned long hex) {
-    return ((1 << l1_index_bits) - 1) & (hex >> (block_bits + l2_sector_bits));
+    return ((1 << l2_index_bits) - 1) & (hex >> (block_bits + l2_sector_bits));
 }
 
 unsigned long Cache::parseL2Selection(unsigned long hex) {
-    return ((1 << l2_selection_bits) - 1) & (hex >> (block_bits + l2_sector_bits + l1_index_bits));
+    return ((1 << l2_selection_bits) - 1) & (hex >> (block_bits + l2_sector_bits + l2_index_bits));
 }
 
 unsigned long Cache::parseL1Tag(unsigned long hex) {
     return hex >> (block_bits + l1_index_bits);
 }
+unsigned long Cache::parseL2Tag(unsigned long hex) {
+    return hex >> (block_bits + l2_index_bits);
+}
 unsigned long Cache::parseL2SectorTag(unsigned long hex) {
-    return hex >> (block_bits + l2_sector_bits + l1_index_bits + l2_selection_bits);
+    return hex >> (block_bits + l2_sector_bits + l2_index_bits + l2_selection_bits);
 }
 //Parse Hex Value to get Block Offset, Index, and Tag
 
@@ -287,7 +326,7 @@ unsigned int Cache::getSelectionBitSize(void) {
 void Cache::printData(void) {
     Cache::sortData();
     if (nextLevel != nullptr) {
-        memory_traffic = 0;
+        memory_traffic = nextLevel->l1_reads_miss + nextLevel->l1_writes_miss + nextLevel->l1_write_backs;
     } else {
         memory_traffic = l1_reads_miss + l1_writes_miss + l1_write_backs;
     }
@@ -383,8 +422,8 @@ void Cache::printData(void) {
                 cout << left << setfill(' ') << setw(2) << " ";
             }
 
-            for (unsigned int j = 0; j < nextLevel->l2_data_blocks; j++) {
-                cout << hex << nextLevel->cache_sectored[i].sectored_cache[j].select << "," << nextLevel->cache_sectored[i].sectored_cache[j].valid << "," << nextLevel->cache_sectored[i].sectored_cache[j].dirty << "		";
+            for (unsigned int j = 0; j < l2_data_blocks; j++) {
+                cout << hex << nextLevel->cache_sectored[i + j * l1_length].select << "," << nextLevel->cache_sectored[i + j * l1_length].valid << "," << nextLevel->cache_sectored[i + j * l1_length].dirty << "		";
             }
             cout << "|| " << endl;
         }
@@ -495,10 +534,6 @@ Cacheway::Cacheway() {
 //Cache section class constructor and sectored cache setter
 Cachesection::Cachesection() {
     tag = 0;
-}
-
-void Cachesection::setDataSector(unsigned int index, unsigned int data_blocks) {
-    sectored_cache = new Cachesector[index * data_blocks];
 }
 //Cache section class constructor and sectored cache setter
 

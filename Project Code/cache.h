@@ -12,8 +12,18 @@ public:
 
     unsigned long tag;
     unsigned int select;
-    unsigned int valid;
+    char valid;
     char dirty;
+};
+
+class Cachesection {
+public:
+    Cachesection(void);
+    void setDataSector(unsigned int index, unsigned int data_blocks);
+
+    //TODO - Make separate data_array from tag_addr array? Might solve a lot of weird math issues
+    unsigned long tag;
+    Cachesector *sectored_cache;
 };
 
 class Cacheway {
@@ -39,9 +49,10 @@ private:
     unsigned long parseL2Sector(unsigned long hex);
     unsigned long parseL1Index(unsigned long hex);
     unsigned long parseL2Index(unsigned long hex);
+    unsigned long parseL2SectorIndex(unsigned long hex);
     unsigned long parseL2Selection(unsigned long hex);
     unsigned long parseL1Tag(unsigned long hex);
-    unsigned long parseL2Tag(unsigned long hex);
+    unsigned long parseL2SectorTag(unsigned long hex);
 
     unsigned int blocksize;
     unsigned int l1_size;
@@ -52,9 +63,10 @@ private:
     unsigned int l2_data_blocks;
     unsigned int l2_addr_tags;
     char *trace_file;
-    Cacheway *cache_structure;
 
+    Cacheway *cache_structure;
     Cache *nextLevel;
+    Cachesection *cache_sectored;
 
     unsigned int l1_reads;
     unsigned int l1_reads_miss;
@@ -75,7 +87,7 @@ private:
 
     unsigned int block_bits;
     unsigned int l2_sector_bits;
-    unsigned int index_bits;
+    unsigned int l1_index_bits;
     unsigned int l2_selection_bits;
     unsigned long l2_sector_addr;
     unsigned long l1_index_addr;

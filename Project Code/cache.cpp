@@ -24,9 +24,10 @@ Cache::Cache(void) {
     trace_file = nullptr;
 
     cache_structure = nullptr;
+    cache_sectored = nullptr;
 
     block_bits = 0;
-    index_bits = 0;
+    l1_index_bits = 0;
     l1_index_addr = 0;
     l1_tag_addr = 0;
     l2_index_addr = 0;
@@ -55,16 +56,21 @@ Cache::Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, cha
     l2_addr_tags = l2at;
     trace_file = file;
 
+    //for l2 cache, if we are using sectored cache we will use first statement
+    //otherwise make a standard cache structure like before
     if ((l2_size == 0) && (l2_data_blocks != 0)) {
-        l1_length = (l1s*l2_addr_tags)/(bs*l1a*l2_data_blocks);
-        cache_structure = new Cacheway[l1_length * l1_assoc * l2_addr_tags];
+        l1_length = l1s/(bs*l1a*l2_data_blocks);
+        cache_sectored = new Cachesection[l1_length * l2_addr_tags];
+        cache_sectored->setDataSector(l1_length, l2_data_blocks);
+        cache_structure = nullptr;
     } else {
         l1_length = l1s/(bs*l1a);
         cache_structure = new Cacheway[l1_length * l1_assoc];
+        cache_sectored = nullptr;
     }
 
     block_bits = 0;
-    index_bits = 0;
+    l1_index_bits = 0;
     l1_index_addr = 0;
     l1_tag_addr = 0;
     l2_index_addr = 0;
@@ -79,7 +85,9 @@ Cache::Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, cha
     memory_traffic = 0;
 
     nextLevel = nullptr;
-    Cache::lruInitializer();
+    if (cache_structure != nullptr) {
+        Cache::lruInitializer();
+    }
     if (l2_size != 0) {
         Cache::nextLevelInitializer();
     }
@@ -120,17 +128,21 @@ void Cache::cpuRequest(char mode, unsigned long hex) {
 //Hex manipulation
 void Cache::hexManipulator(unsigned long hex) {
     block_bits = Cache::getBlockOffset();
-    index_bits = Cache::getIndexBitSize();
+    l1_index_bits = Cache::getIndexBitSize();
     l1_index_addr = Cache::parseL1Index(hex);
     l1_tag_addr = Cache::parseL1Tag(hex);
 
     if (nextLevel != nullptr) {
-        l2_sector_bits = Cache::getSectorBitSize();
-        l2_selection_bits = Cache::getSelectionBitSize();
-        l2_sector_addr = Cache::parseL2Sector(hex);
-        l2_index_addr = Cache::parseL2Index(hex);
-        l2_selection_addr = Cache::parseL2Selection(hex);
-        l2_tag_addr = Cache::parseL2Tag(hex);
+        if (l2_assoc > 1) {
+
+        } else {
+            l2_sector_bits = Cache::getSectorBitSize();
+            l2_selection_bits = Cache::getSelectionBitSize();
+            l2_sector_addr = Cache::parseL2Sector(hex);
+            l2_index_addr = Cache::parseL2SectorIndex(hex);
+            l2_selection_addr = Cache::parseL2Selection(hex);
+            l2_tag_addr = Cache::parseL2SectorTag(hex);
+        }
     }
 }
 //Hex manipulation
@@ -232,21 +244,24 @@ unsigned long Cache::parseL2Sector(unsigned long hex) {
 }
 
 unsigned long Cache::parseL1Index(unsigned long hex) {
-    return ((1 << index_bits) - 1) & (hex >> block_bits);
+    return ((1 << l1_index_bits) - 1) & (hex >> block_bits);
 }
 unsigned long Cache::parseL2Index(unsigned long hex) {
-    return ((1 << index_bits) - 1) & (hex >> (block_bits + l2_sector_bits));
+    return ((1 << l1_index_bits) - 1) & (hex >> (block_bits));
+}
+unsigned long Cache::parseL2SectorIndex(unsigned long hex) {
+    return ((1 << l1_index_bits) - 1) & (hex >> (block_bits + l2_sector_bits));
 }
 
 unsigned long Cache::parseL2Selection(unsigned long hex) {
-    return ((1 << l2_selection_bits) - 1) & (hex >> (block_bits + l2_sector_bits + index_bits));
+    return ((1 << l2_selection_bits) - 1) & (hex >> (block_bits + l2_sector_bits + l1_index_bits));
 }
 
 unsigned long Cache::parseL1Tag(unsigned long hex) {
-    return hex >> (block_bits + index_bits);
+    return hex >> (block_bits + l1_index_bits);
 }
-unsigned long Cache::parseL2Tag(unsigned long hex) {
-    return hex >> (block_bits + l2_sector_bits + index_bits + l2_selection_bits);
+unsigned long Cache::parseL2SectorTag(unsigned long hex) {
+    return hex >> (block_bits + l2_sector_bits + l1_index_bits + l2_selection_bits);
 }
 //Parse Hex Value to get Block Offset, Index, and Tag
 
@@ -310,9 +325,9 @@ void Cache::printData(void) {
         cout << endl;
     }
     //L1 Tag Printout
-
-    if (nextLevel != nullptr) {
-        //L2 Tag Printout
+    //L2 Regular Cache Tag Printout
+    if ((nextLevel != nullptr) && (nextLevel->cache_sectored == nullptr)) {
+        cout << endl;
         cout << "===== L2 contents =====" << endl;
         for (unsigned int i = 0; i < nextLevel->l1_length; i++) {
             cout << dec << "set " << i << ":";
@@ -330,8 +345,51 @@ void Cache::printData(void) {
             }
             cout << endl;
         }
-        //L2 Tag Printout
+        cout << endl;
     }
+    //L2 Regular Cache Tag Printout
+    //L2 Sectored Cache Tag Printout
+    else if ((nextLevel != nullptr) && (nextLevel->cache_sectored != nullptr)) {
+        cout << endl;
+        cout << "===== L2 Address Array contents =====" << endl;
+        for (unsigned int i = 0; i < nextLevel->l1_length; i++) {
+            cout << dec << "set " << i << ":";
+            if (i > 999) {
+                cout << left << setfill(' ') << setw(3) << " ";
+            } else if (i > 99) {
+                cout << left << setfill(' ') << setw(4) << " ";
+            } else if (i > 9) {
+                cout << left << setfill(' ') << setw(1) << " ";
+            } else {
+                cout << left << setfill(' ') << setw(2) << " ";
+            }
+            for (unsigned int j = 0; j < nextLevel->l2_addr_tags; j++) {
+                cout << hex << nextLevel->cache_sectored[i].tag << "		";
+            }
+            cout << "|| " << endl;
+        }
+
+        cout << endl;
+        cout << "===== L2 Data Array contents =====" << endl;
+        for (unsigned int i = 0; i < nextLevel->l1_length; i++) {
+            cout << dec << "set " << i << ":";
+            if (i > 999) {
+                cout << left << setfill(' ') << setw(3) << " ";
+            } else if (i > 99) {
+                cout << left << setfill(' ') << setw(4) << " ";
+            } else if (i > 9) {
+                cout << left << setfill(' ') << setw(1) << " ";
+            } else {
+                cout << left << setfill(' ') << setw(2) << " ";
+            }
+
+            for (unsigned int j = 0; j < nextLevel->l2_data_blocks; j++) {
+                cout << hex << nextLevel->cache_sectored[i].sectored_cache[j].select << "," << nextLevel->cache_sectored[i].sectored_cache[j].valid << "," << nextLevel->cache_sectored[i].sectored_cache[j].dirty << "		";
+            }
+            cout << "|| " << endl;
+        }
+    }
+    //L2 Sectored Cache Tag Printout
 
     //Footer to printout
     cout << dec << endl;
@@ -397,7 +455,7 @@ void Cache::sortData(void) {
         }
     }
 
-    if (nextLevel != nullptr) {
+    if ((nextLevel != nullptr) && (nextLevel->cache_structure != nullptr)) {
         for (unsigned int i = 0; i < nextLevel->l1_length; i++) {
             for (unsigned int j = 0; j < nextLevel->l1_assoc - 1; j++) {
                 min_idx = j;
@@ -434,9 +492,21 @@ Cacheway::Cacheway() {
 }
 //Cache way class constructor
 
+//Cache section class constructor and sectored cache setter
+Cachesection::Cachesection() {
+    tag = 0;
+}
+
+void Cachesection::setDataSector(unsigned int index, unsigned int data_blocks) {
+    sectored_cache = new Cachesector[index * data_blocks];
+}
+//Cache section class constructor and sectored cache setter
+
+//Cache sector class constructor
 Cachesector::Cachesector() {
     tag = 0;
     select = 0;
-    valid = 0;
+    valid = 'I';
     dirty = 'N';
 }
+//Cache sector class constructor

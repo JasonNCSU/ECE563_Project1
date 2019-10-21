@@ -143,10 +143,10 @@ void Cache::cpuRequest(char mode, unsigned long hex) {
     Cache::hexManipulator(hex);
     if (mode == 'r') {
         l1_reads++;
-        Cache::readFromAddress();
+        Cache::readFromL1Address();
     } else {
         l1_writes++;
-        Cache::writeToAddress();
+        Cache::writeToL1Address();
     }
 }
 //handles what to do with cpu request
@@ -177,7 +177,7 @@ void Cache::hexManipulator(unsigned long hex) {
 //Hex manipulation
 
 //L1 Read Function Call
-void Cache::readFromAddress(void) {
+void Cache::readFromL1Address(void) {
     bool hit = false;
     unsigned int hit_index = 0;
     unsigned int lru_max = 0;
@@ -207,7 +207,7 @@ void Cache::readFromAddress(void) {
             } else {
                 if (cache_structure[l1_index_addr + i * l1_length].dirty == 'D') {
                     if (nextLevel != nullptr) {
-                        //take the above dirty block and send it back to L2!
+                        writeToL2Address();
                     }
                     l1_write_backs++;
                     cache_structure[l1_index_addr + i * l1_length].dirty = 'N';
@@ -216,6 +216,7 @@ void Cache::readFromAddress(void) {
                 cache_structure[l1_index_addr + i * l1_length].lru = 0;
             }
         }
+        readFromL2Address();
     }
 }
 //L1 Read Function Call
@@ -225,7 +226,7 @@ void Cache::readFromAddress(void) {
 //L2 Read Function Call
 
 //L1 Write Function Call
-void Cache::writeToAddress(void) {
+void Cache::writeToL1Address(void) {
     bool hit = false;
     unsigned int hit_index = 0;
     unsigned int lru_max = 0;
@@ -256,7 +257,7 @@ void Cache::writeToAddress(void) {
             } else {
                 if (cache_structure[l1_index_addr + i * l1_length].dirty == 'D') {
                     if (nextLevel != nullptr) {
-                        //take the above dirty block and send it back to L2!
+                        writeToL2Address();
                     }
                     l1_write_backs++;
                 }
@@ -265,6 +266,7 @@ void Cache::writeToAddress(void) {
                 cache_structure[l1_index_addr + i * l1_length].dirty = 'D';
             }
         }
+        readFromL2Address();
     }
 }
 //L1 Write Function Call
@@ -403,7 +405,7 @@ void Cache::printData(void) {
                 cout << left << setfill(' ') << setw(2) << " ";
             }
             for (unsigned int j = 0; j < nextLevel->l2_addr_tags; j++) {
-                cout << hex << nextLevel->cache_sectored[i].tag << "		";
+                cout << hex << nextLevel->cache_sectored[i + j * nextLevel->l1_length].tag << "		";
             }
             cout << "|| " << endl;
         }

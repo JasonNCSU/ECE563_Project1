@@ -35,8 +35,10 @@ public:
 class Cache {
 private:
     void hexManipulator(unsigned long hex);
-    void readFromAddress(void);
-    void writeToAddress(void);
+    void readFromL1Address(void);
+    void writeToL1Address(void);
+    void readFromL2Address(void);
+    void writeToL2Address(void);
     void sortData(void);
 
     unsigned int getBlockOffset(void);

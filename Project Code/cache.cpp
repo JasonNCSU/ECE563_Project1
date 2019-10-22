@@ -355,6 +355,19 @@ void Cache::readFromL2Address(void) {
         //this is how they look
         //cache_address = new Cachesection[l1_length * l2_addr_tags];
         //cache_sectored = new Cachesector[l1_length * l2_data_blocks];
+        bool addr_hit = false;
+        bool data_hit = false;
+        if (nextLevel->cache_address[l2_index_addr + l2_selection_addr * nextLevel->l1_length].tag == l2_addr_tags) {
+            addr_hit = true;
+        }
+        if (addr_hit) {
+            if ((nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].tag == l2_addr_tags) && (nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].select == l2_selection_addr)) {
+                data_hit = true;
+            }
+        }
+        if (!data_hit) {
+
+        }
     }
 }
 //L2 Read Function Call
@@ -458,6 +471,22 @@ void Cache::writeToL2Address(void) {
     } else {
         //TODO this is the new function, have to account for it being slightly different
         //          because it has address array and sectored data array
+        //this is how they look
+        //cache_address = new Cachesection[l1_length * l2_addr_tags];
+        //cache_sectored = new Cachesector[l1_length * l2_data_blocks];
+        bool addr_hit = false;
+        bool data_hit = false;
+        if (nextLevel->cache_address[l2_index_addr + l2_selection_addr * nextLevel->l1_length].tag == l2_addr_tags) {
+            addr_hit = true;
+        }
+        if (addr_hit) {
+            if ((nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].tag == l2_addr_tags) && (nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].select == l2_selection_addr)) {
+                data_hit = true;
+            }
+        }
+        if (!data_hit) {
+
+        }
     }
 }
 //L2 Write Function Call

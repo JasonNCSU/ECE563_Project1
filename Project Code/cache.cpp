@@ -73,7 +73,7 @@ Cache::Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, cha
 
     //for l2 cache, if we are using sectored cache we will use first statement
     //otherwise make a standard cache structure like before
-    if ((l2_size == 0) && (l2_data_blocks != 0)) {
+    if ((l2_size == 0) && (l2_data_blocks > 1)) {
         l1_length = l1s/(bs*l1a*l2_data_blocks);
         cache_address = new Cachesection[l1_length * l2_addr_tags];
         cache_sectored = new Cachesector[l1_length * l2_data_blocks];
@@ -224,7 +224,43 @@ void Cache::readFromL1Address(void) {
 //L2 Read Function Call
 void Cache::readFromL2Address(void) {
     if (nextLevel->cache_address == nullptr) {
-        //TODO pretty much same as readFromL1Address honestly...
+        //pretty much same as readFromL1Address honestly... Just with L2 information!
+        bool hit = false;
+        unsigned int hit_index = 0;
+        unsigned int lru_max = 0;
+
+        for (unsigned int i = 0; i < nextLevel->l1_assoc; i++) {
+            if (nextLevel->cache_structure[l2_index_addr + i * nextLevel->l1_length].tag == l2_tag_addr) {
+                hit = true;
+                hit_index = l2_index_addr + i * nextLevel->l1_length;
+                break;
+            }
+        }
+
+        if (hit) {
+            lru_max = nextLevel->cache_structure[hit_index].lru;
+            for (unsigned int i = 0; i < l2_assoc; i++) {
+                if (cache_structure[l2_index_addr + i * nextLevel->l1_length].lru < lru_max) {
+                    cache_structure[l2_index_addr + i * nextLevel->l1_length].lru += 1;
+                }
+            }
+            cache_structure[hit_index].lru = 0;
+        } else {
+            l2_reads_miss++;
+
+            for (unsigned int i = 0; i < l1_assoc; i++) {
+                if (cache_structure[l2_index_addr + i * nextLevel->l1_length].lru != (nextLevel->l1_assoc - 1)) {
+                    cache_structure[l2_index_addr + i * nextLevel->l1_length].lru += 1;
+                } else {
+                    if (cache_structure[l2_index_addr + i * nextLevel->l1_length].dirty == 'D') {
+                        l2_write_backs++;
+                        cache_structure[l2_index_addr + i * nextLevel->l1_length].dirty = 'N';
+                    }
+                    cache_structure[l2_index_addr + i * nextLevel->l1_length].tag = l2_tag_addr;
+                    cache_structure[l2_index_addr + i * nextLevel->l1_length].lru = 0;
+                }
+            }
+        }
     } else {
         //TODO this is the new function, have to account for it being slightly different
         //          because it has address array and sectored data array

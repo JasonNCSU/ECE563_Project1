@@ -391,7 +391,6 @@ void Cache::readFromL2Address(void) {
             }
         }
     }
-    Cache::printData();
 }
 //L2 Read Function Call
 

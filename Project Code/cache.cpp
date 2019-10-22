@@ -64,6 +64,7 @@ Cache::Cache(void) {
 
     l2_addr_check = 0;
     run_num = 0;
+    input_address = 0;
 
     nextLevel = nullptr;
 }
@@ -130,6 +131,7 @@ Cache::Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, cha
     l2_write_tag_addr = 0;
 
     run_num = 0;
+    input_address = 0;
 
     nextLevel = nullptr;
     if (cache_structure != nullptr) {
@@ -157,6 +159,7 @@ void Cache::lruInitializer(void) {
 
 //handles what to do with cpu request
 void Cache::cpuRequest(char mode, unsigned long address) {
+    input_address = address;
     Cache::hexManipulator(address);
     run_num++;
 #ifdef DEBUG_OUTPUT
@@ -164,13 +167,15 @@ void Cache::cpuRequest(char mode, unsigned long address) {
 #endif
     if (mode == 'r') {
 #ifdef DEBUG_OUTPUT
-        cout << "# " << run_num << ": L1 read: " << hex << address << "(tag " << l1_tag_addr << dec << ", index " << l1_index_addr << ")" << endl;
+        cout << "# " << dec << run_num << ": read: " << hex << address << endl;
+        cout << "L1 read: " << hex << address << " (tag " << l1_tag_addr << dec << ", index " << l1_index_addr << ")" << endl;
 #endif
         l1_reads++;
         Cache::readFromL1Address();
     } else {
 #ifdef DEBUG_OUTPUT
-        cout << "# " << run_num << ": L1 write: " << hex << address << "(tag " << l1_tag_addr << dec << ", index " << l1_index_addr << ")" << endl;
+        cout << "# " << dec << run_num << ": write: " << hex << address << endl;
+        cout << "L1 write: " << hex << address << " (tag " << l1_tag_addr << dec << ", index " << l1_index_addr << ")" << endl;
 #endif
         l1_writes++;
         Cache::writeToL1Address();
@@ -307,7 +312,7 @@ void Cache::readFromL1Address(void) {
         }
         if (nextLevel != nullptr) {
 #ifdef DEBUG_OUTPUT
-            cout << "L2 read: " << hex << "(C0 " << l2_sector_addr << ", C1 " << l2_index_addr << ", C2 " << l2_selection_addr << ", C3 " << l2_tag_addr << ")" << endl;
+            cout << "L2 read: " << hex << input_address << " (C0 " << l2_sector_addr << ", C1 " << l2_index_addr << ", C2 " << l2_selection_addr << ", C3 " << l2_tag_addr << ")" << endl;
 #endif
             Cache::readFromL2Address();
         }
@@ -484,9 +489,6 @@ void Cache::writeToL1Address(void) {
                         } else {
                             rebuildSectoredL2Index(l1_index_addr, cache_structure[l1_index_addr + i * l1_length].tag);
                         }
-#ifdef DEBUG_OUTPUT
-                        cout << "L2 write: " << hex << "(C0 " << l2_write_sector_addr << ", C1 " << l2_write_index_addr << ", C2 " << l2_write_selection_addr << ", C3 " << l2_write_tag_addr << ")" << endl;
-#endif
                         writeToL2Address();
                     }
                     l1_write_backs++;
@@ -498,7 +500,7 @@ void Cache::writeToL1Address(void) {
         }
         if (nextLevel != nullptr) {
 #ifdef DEBUG_OUTPUT
-            cout << "L2 read: " << hex << "(C0 " << l2_sector_addr << ", C1 " << l2_index_addr << ", C2 " << l2_selection_addr << ", C3 " << l2_tag_addr << ")" << endl;
+            cout << "L2 read: " << hex << input_address << " (C0 " << l2_sector_addr << ", C1 " << l2_index_addr << ", C2 " << l2_selection_addr << ", C3 " << l2_tag_addr << ")" << endl;
 #endif
             Cache::readFromL2Address();
         }
@@ -649,6 +651,10 @@ void Cache::rebuildSectoredL2Index(unsigned long index, unsigned long tag) {
     address = address >> l2_index_bits;
     l2_write_selection_addr = (((1 << l2_selection_bits) - 1) & address);
     l2_write_tag_addr = (address >> l2_selection_bits);
+
+#ifdef DEBUG_OUTPUT
+    cout << "L2 write: " << hex << "(C0 " << l2_write_sector_addr << ", C1 " << l2_write_index_addr << ", C2 " << l2_write_selection_addr << ", C3 " << l2_write_tag_addr << ")" << endl;
+#endif
 }
 //Rebuild addresses for writeback
 

@@ -110,6 +110,7 @@ private:
     unsigned long l2_write_tag_addr;
 
     unsigned long run_num;
+    unsigned long input_address;
 
 public:
     Cache(void);

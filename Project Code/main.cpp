@@ -31,6 +31,7 @@ int main(int argc, char **argv) {
     while (getline(input, data_segment)) {
         cache.cpuRequest(data_segment.at(0), strtoul(data_segment.substr(2, data_segment.length()).c_str(), nullptr, 16));
     }
+    cache.sortData();
     cache.printData();
 
     //Signals the end of the program

@@ -42,7 +42,6 @@ private:
     void writeToL1Address(void);
     void readFromL2Address(void);
     void writeToL2Address(void);
-    void sortData(void);
 
     unsigned int getBlockOffset(void);
     unsigned int getSectorBitSize(void);
@@ -85,6 +84,7 @@ private:
 
     double l2_miss_rate;
     unsigned int l2_reads_miss;
+    unsigned int l2_addr_check;
     unsigned int l2_writes_miss;
     unsigned int l2_reads;
     unsigned int l2_writes;
@@ -116,6 +116,7 @@ public:
     void nextLevelInitializer(void);
     void lruInitializer(void);
     void cpuRequest(char mode, unsigned long hex);
+    void sortData(void);
     void printData(void);
 };
 

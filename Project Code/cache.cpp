@@ -79,12 +79,10 @@ Cache::Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, cha
     //for l2 cache, if we are using sectored cache we will use first statement
     //otherwise make a standard cache structure like before
     if ((l2_size == 0) && (l2_data_blocks > 1)) {
+        cache_structure = nullptr;
         l1_length = l1_size/(blocksize*l1_assoc*l2_data_blocks);
         cache_address = new Cachesection[l1_length * l2_addr_tags];
         cache_sectored = new Cachesector[l1_length * l2_data_blocks];
-        //Cache::addressBlockInitializer();
-        //Cache::dataBlockInitializer();
-        cache_structure = nullptr;
     } else {
         l1_length = l1_size/(blocksize*l1_assoc);
         cache_structure = new Cacheway[l1_length * l1_assoc];
@@ -114,6 +112,7 @@ Cache::Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, cha
 
     l2_miss_rate = 0;
     l2_reads_miss = 0;
+    l2_addr_check = 0;
     l2_writes_miss = 0;
     l2_reads = 0;
     l2_writes = 0;
@@ -145,25 +144,6 @@ void Cache::lruInitializer(void) {
     for (unsigned int i = 0; i < l1_length; i++) {
         for (unsigned int j = 0; j < l1_assoc; j++) {
             cache_structure[i + j * l1_length].lru = j;
-        }
-    }
-}
-
-void Cache::addressBlockInitializer(void) {
-    for (unsigned int i = 0; i < l1_length; i++) {
-        for (unsigned int j = 0; j < l2_addr_tags; j++) {
-            cache_address[i + j * l1_length].tag = 0;
-        }
-    }
-}
-
-void Cache::dataBlockInitializer(void) {
-    for (unsigned int i = 0; i < l1_length; i++) {
-        for (unsigned int j = 0; j < l2_data_blocks; j++) {
-            cache_sectored[i + j * l1_length].tag = 0;
-            cache_sectored[i + j * l1_length].dirty = 'N';
-            cache_sectored[i + j * l1_length].valid = 'I';
-            cache_sectored[i + j * l1_length].select = 0;
         }
     }
 }
@@ -399,8 +379,8 @@ void Cache::readFromL2Address(void) {
                         sectPtr->valid = 'I';
                     }
                 }
-                nextLevel->cache_address[0].tag = l2_tag_addr;
-                //nextLevel->cache_structure[l2_index_addr + i * nextLevel->l1_length].tag = l2_tag_addr;
+                l2_addr_check++;
+                addrPtr->tag = l2_tag_addr;
                 sectPtr->tag = l2_tag_addr;
                 sectPtr->select = l2_selection_addr;
                 sectPtr->valid = 'V';
@@ -597,7 +577,6 @@ void Cache::rebuildSectoredL2Index(unsigned long index, unsigned long tag) {
 
 //Prints out desired values with formatting
 void Cache::printData(void) {
-    Cache::sortData();
     if (nextLevel != nullptr) {
         memory_traffic = l2_reads_miss + l2_writes_miss + l2_write_backs;
     } else {

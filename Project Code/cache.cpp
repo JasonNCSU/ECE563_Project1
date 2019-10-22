@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <cmath>
 #include <iostream>
+#define DEBUG_OUTPUT
 
 using namespace std;
 
@@ -60,6 +61,9 @@ Cache::Cache(void) {
     l2_write_index_addr = 0;
     l2_write_selection_addr = 0;
     l2_write_tag_addr = 0;
+
+    l2_addr_check = 0;
+    run_num = 0;
 
     nextLevel = nullptr;
 }
@@ -125,6 +129,8 @@ Cache::Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, cha
     l2_write_selection_addr = 0;
     l2_write_tag_addr = 0;
 
+    run_num = 0;
+
     nextLevel = nullptr;
     if (cache_structure != nullptr) {
         Cache::lruInitializer();
@@ -150,12 +156,22 @@ void Cache::lruInitializer(void) {
 //Initializes cache data structure
 
 //handles what to do with cpu request
-void Cache::cpuRequest(char mode, unsigned long hex) {
-    Cache::hexManipulator(hex);
+void Cache::cpuRequest(char mode, unsigned long address) {
+    Cache::hexManipulator(address);
+    run_num++;
+#ifdef DEBUG_OUTPUT
+    cout << "------------------------------------------------" << endl;
+#endif
     if (mode == 'r') {
+#ifdef DEBUG_OUTPUT
+        cout << "# " << run_num << ": L1 read: " << hex << address << "(tag " << l1_tag_addr << dec << ", index " << l1_index_addr << ")" << endl;
+#endif
         l1_reads++;
         Cache::readFromL1Address();
     } else {
+#ifdef DEBUG_OUTPUT
+        cout << "# " << run_num << ": L1 write: " << hex << address << "(tag " << l1_tag_addr << dec << ", index " << l1_index_addr << ")" << endl;
+#endif
         l1_writes++;
         Cache::writeToL1Address();
     }
@@ -250,6 +266,9 @@ void Cache::readFromL1Address(void) {
     }
 
     if (hit) {
+#ifdef DEBUG_OUTPUT
+        cout << "L1 hit" << endl;
+#endif
         lru_max = cache_structure[hit_index].lru;
         for (unsigned int i = 0; i < l1_assoc; i++) {
             if (cache_structure[l1_index_addr + i * l1_length].lru < lru_max) {
@@ -258,6 +277,9 @@ void Cache::readFromL1Address(void) {
         }
         cache_structure[hit_index].lru = 0;
     } else {
+#ifdef DEBUG_OUTPUT
+        cout << "L1 miss" << endl;
+#endif
         l1_reads_miss++;
 
         for (unsigned int i = 0; i < l1_assoc; i++) {
@@ -271,6 +293,9 @@ void Cache::readFromL1Address(void) {
                         } else {
                             rebuildSectoredL2Index(l1_index_addr, cache_structure[l1_index_addr + i * l1_length].tag);
                         }
+#ifdef DEBUG_OUTPUT
+                        cout << "L2 write: " << hex << "(C0 " << l2_write_sector_addr << ", C1 " << l2_write_index_addr << ", C2 " << l2_write_selection_addr << ", C3 " << l2_write_tag_addr << ")" << endl;
+#endif
                         writeToL2Address();
                     }
                     l1_write_backs++;
@@ -281,9 +306,15 @@ void Cache::readFromL1Address(void) {
             }
         }
         if (nextLevel != nullptr) {
+#ifdef DEBUG_OUTPUT
+            cout << "L2 read: " << hex << "(C0 " << l2_sector_addr << ", C1 " << l2_index_addr << ", C2 " << l2_selection_addr << ", C3 " << l2_tag_addr << ")" << endl;
+#endif
             Cache::readFromL2Address();
         }
     }
+#ifdef DEBUG_OUTPUT
+    cout << "L1 update LRU" << endl;
+#endif
 }
 //L1 Read Function Call
 
@@ -307,6 +338,9 @@ void Cache::readFromL2Address(void) {
         }
 
         if (hit) {
+#ifdef DEBUG_OUTPUT
+            cout << "L2 hit" << endl;
+#endif
             lru_max = nextLevel->cache_structure[hit_index].lru;
             for (unsigned int i = 0; i < l2_assoc; i++) {
                 Cacheway *cachePtrLoop = &nextLevel->cache_structure[l2_index_addr + i * nextLevel->l1_length];
@@ -316,6 +350,9 @@ void Cache::readFromL2Address(void) {
             }
             nextLevel->cache_structure[hit_index].lru = 0;
         } else {
+#ifdef DEBUG_OUTPUT
+            cout << "L2 miss" << endl;
+#endif
             l2_reads_miss++;
 
             for (unsigned int i = 0; i < l2_assoc; i++) {
@@ -349,9 +386,15 @@ void Cache::readFromL2Address(void) {
         if (addr_hit) {
             if ((sectPtr->tag == l2_tag_addr) && (sectPtr->select == l2_selection_addr)) {
                 data_hit = true;
+#ifdef DEBUG_OUTPUT
+                cout << "L2 hit" << endl;
+#endif
             }
         }
         if (!data_hit) {
+#ifdef DEBUG_OUTPUT
+            cout << "L2 miss" << endl;
+#endif
             l2_reads_miss++;
             //check for miss type
             if ((sectPtr->tag == 0) || (sectPtr->valid = 'I')) {
@@ -391,6 +434,10 @@ void Cache::readFromL2Address(void) {
             }
         }
     }
+#ifdef DEBUG_OUTPUT
+    cout << "L2 update LRU" << endl;
+#endif
+    //Cache::printData();
 }
 //L2 Read Function Call
 
@@ -409,6 +456,9 @@ void Cache::writeToL1Address(void) {
     }
 
     if (hit) {
+#ifdef DEBUG_OUTPUT
+        cout << "L1 hit" << endl;
+#endif
         lru_max = cache_structure[hit_index].lru;
         for (unsigned int i = 0; i < l1_assoc; i++) {
             if (cache_structure[l1_index_addr + i * l1_length].lru < lru_max) {
@@ -418,6 +468,9 @@ void Cache::writeToL1Address(void) {
         cache_structure[hit_index].lru = 0;
         cache_structure[hit_index].dirty = 'D';
     } else {
+#ifdef DEBUG_OUTPUT
+        cout << "L1 miss" << endl;
+#endif
         l1_writes_miss++;
 
         for (unsigned int i = 0; i < l1_assoc; i++) {
@@ -431,6 +484,9 @@ void Cache::writeToL1Address(void) {
                         } else {
                             rebuildSectoredL2Index(l1_index_addr, cache_structure[l1_index_addr + i * l1_length].tag);
                         }
+#ifdef DEBUG_OUTPUT
+                        cout << "L2 write: " << hex << "(C0 " << l2_write_sector_addr << ", C1 " << l2_write_index_addr << ", C2 " << l2_write_selection_addr << ", C3 " << l2_write_tag_addr << ")" << endl;
+#endif
                         writeToL2Address();
                     }
                     l1_write_backs++;
@@ -441,13 +497,19 @@ void Cache::writeToL1Address(void) {
             }
         }
         if (nextLevel != nullptr) {
+#ifdef DEBUG_OUTPUT
+            cout << "L2 read: " << hex << "(C0 " << l2_sector_addr << ", C1 " << l2_index_addr << ", C2 " << l2_selection_addr << ", C3 " << l2_tag_addr << ")" << endl;
+#endif
             Cache::readFromL2Address();
         }
     }
+#ifdef DEBUG_OUTPUT
+    cout << "L1 update LRU" << endl;
+#endif
 }
 //L1 Write Function Call
 
-//L2 Write Functon Call
+//L2 Write Function Call
 void Cache::writeToL2Address(void) {
     l2_writes++;
 
@@ -467,6 +529,9 @@ void Cache::writeToL2Address(void) {
         }
 
         if (hit) {
+#ifdef DEBUG_OUTPUT
+            cout << "L2 hit" << endl;
+#endif
             lru_max = nextLevel->cache_structure[hit_index].lru;
             for (unsigned int i = 0; i < l2_assoc; i++) {
                 Cacheway *cachePtrLoop = &nextLevel->cache_structure[l2_index_addr + i * nextLevel->l1_length];
@@ -477,6 +542,9 @@ void Cache::writeToL2Address(void) {
             nextLevel->cache_structure[hit_index].lru = 0;
             nextLevel->cache_structure[hit_index].dirty = 'D';
         } else {
+#ifdef DEBUG_OUTPUT
+            cout << "L2 miss" << endl;
+#endif
             l2_writes_miss++;
 
             for (unsigned int i = 0; i < l2_assoc; i++) {
@@ -510,9 +578,15 @@ void Cache::writeToL2Address(void) {
         if (addr_hit) {
             if ((sectPtr->tag == l2_write_tag_addr) && (sectPtr->select == l2_write_selection_addr)) {
                 data_hit = true;
+#ifdef DEBUG_OUTPUT
+                cout << "L2 hit" << endl;
+#endif
             }
         }
         if (!data_hit) {
+#ifdef DEBUG_OUTPUT
+            cout << "L2 miss" << endl;
+#endif
             l2_writes_miss++;
             //check for miss type
             if ((sectPtr->tag == 0) || (sectPtr->valid = 'I')) {
@@ -552,6 +626,10 @@ void Cache::writeToL2Address(void) {
             }
         }
     }
+#ifdef DEBUG_OUTPUT
+    cout << "L2 update LRU" << endl;
+#endif
+    //Cache::printData();
 }
 //L2 Write Function Call
 
@@ -673,7 +751,7 @@ void Cache::printData(void) {
             }
 
             for (unsigned int j = 0; j < l2_data_blocks; j++) {
-                cout << hex << nextLevel->cache_sectored[i + j * l1_length].select << "," << nextLevel->cache_sectored[i + j * l1_length].valid << "," << nextLevel->cache_sectored[i + j * l1_length].dirty << "		";
+                cout << hex << nextLevel->cache_sectored[i + j * nextLevel->l1_length].select << "," << nextLevel->cache_sectored[i + j * nextLevel->l1_length].valid << "," << nextLevel->cache_sectored[i + j * nextLevel->l1_length].dirty << "		";
             }
             cout << "|| " << endl;
         }
@@ -771,7 +849,6 @@ void Cache::sortData(void) {
         }
     }
 }
-
 //=========================================================================================
 //Cache way class constructor
 Cacheway::Cacheway() {

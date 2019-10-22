@@ -109,13 +109,15 @@ private:
     unsigned long l2_write_selection_addr;
     unsigned long l2_write_tag_addr;
 
+    unsigned long run_num;
+
 public:
     Cache(void);
     Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, char *file);
 
     void nextLevelInitializer(void);
     void lruInitializer(void);
-    void cpuRequest(char mode, unsigned long hex);
+    void cpuRequest(char mode, unsigned long address);
     void sortData(void);
     void printData(void);
 };

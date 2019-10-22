@@ -56,6 +56,11 @@ Cache::Cache(void) {
     l2_cache_miss = 0;
     l2_write_backs = 0;
 
+    l2_write_sector_addr = 0;
+    l2_write_index_addr = 0;
+    l2_write_selection_addr = 0;
+    l2_write_tag_addr = 0;
+
     nextLevel = nullptr;
 }
 //Cache Constructor we don't want
@@ -77,6 +82,8 @@ Cache::Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, cha
         l1_length = l1s/(bs*l1a*l2_data_blocks);
         cache_address = new Cachesection[l1_length * l2_addr_tags];
         cache_sectored = new Cachesector[l1_length * l2_data_blocks];
+        Cache::addressBlockInitializer();
+        Cache::dataBlockInitializer();
         cache_structure = nullptr;
     } else {
         l1_length = l1s/(bs*l1a);
@@ -114,6 +121,11 @@ Cache::Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, cha
     l2_cache_miss = 0;
     l2_write_backs = 0;
 
+    l2_write_sector_addr = 0;
+    l2_write_index_addr = 0;
+    l2_write_selection_addr = 0;
+    l2_write_tag_addr = 0;
+
     nextLevel = nullptr;
     if (cache_structure != nullptr) {
         Cache::lruInitializer();
@@ -133,6 +145,27 @@ void Cache::lruInitializer(void) {
     for (unsigned int i = 0; i < l1_length; i++) {
         for (unsigned int j = 0; j < l1_assoc; j++) {
             cache_structure[i + j * l1_length].lru = j;
+        }
+    }
+}
+
+void Cache::addressBlockInitializer(void) {
+    for (int i = 0; i < l1_length; i++) {
+        for (int j = 0; j < l2_addr_tags; j++) {
+            cache_address[i + j * l1_length].tag = 0;
+        }
+    }
+}
+
+void Cache::dataBlockInitializer(void) {
+//cache_address = new Cachesection[l1_length * l2_addr_tags];
+//        cache_sectored = new Cachesector[l1_length * l2_data_blocks];
+    for (int i = 0; i < l1_length; i++) {
+        for (int j = 0; j < l2_data_blocks; j++) {
+            cache_sectored[i + j * l1_length].tag = 0;
+            cache_sectored[i + j * l1_length].dirty = 'N';
+            cache_sectored[i + j * l1_length].valid = 'I';
+            cache_sectored[i + j * l1_length].select = 0;
         }
     }
 }
@@ -161,8 +194,8 @@ void Cache::hexManipulator(unsigned long hex) {
     if (nextLevel != nullptr) {
         if (l2_assoc > 1) {
             l2_index_bits = nextLevel->Cache::getIndexBitSize();
-            l2_index_addr = nextLevel->Cache::parseL2Index(hex);
-            l2_tag_addr = nextLevel->Cache::parseL2Tag(hex);
+            l2_index_addr = Cache::parseL2Index(hex);
+            l2_tag_addr = Cache::parseL2Tag(hex);
         } else {
             l2_sector_bits = Cache::getSectorBitSize();
             l2_index_bits = nextLevel->Cache::getIndexBitSize();
@@ -175,156 +208,6 @@ void Cache::hexManipulator(unsigned long hex) {
     }
 }
 //Hex manipulation
-
-//L1 Read Function Call
-void Cache::readFromL1Address(void) {
-    bool hit = false;
-    unsigned int hit_index = 0;
-    unsigned int lru_max = 0;
-
-    for (unsigned int i = 0; i < l1_assoc; i++) {
-        if (cache_structure[l1_index_addr + i * l1_length].tag == l1_tag_addr) {
-            hit = true;
-            hit_index = l1_index_addr + i * l1_length;
-            break;
-        }
-    }
-
-    if (hit) {
-        lru_max = cache_structure[hit_index].lru;
-        for (unsigned int i = 0; i < l1_assoc; i++) {
-            if (cache_structure[l1_index_addr + i * l1_length].lru < lru_max) {
-                cache_structure[l1_index_addr + i * l1_length].lru += 1;
-            }
-        }
-        cache_structure[hit_index].lru = 0;
-    } else {
-        l1_reads_miss++;
-
-        for (unsigned int i = 0; i < l1_assoc; i++) {
-            if (cache_structure[l1_index_addr + i * l1_length].lru != (l1_assoc - 1)) {
-                cache_structure[l1_index_addr + i * l1_length].lru += 1;
-            } else {
-                if (cache_structure[l1_index_addr + i * l1_length].dirty == 'D') {
-                    if (nextLevel != nullptr) {
-                        writeToL2Address();
-                    }
-                    l1_write_backs++;
-                    cache_structure[l1_index_addr + i * l1_length].dirty = 'N';
-                }
-                cache_structure[l1_index_addr + i * l1_length].tag = l1_tag_addr;
-                cache_structure[l1_index_addr + i * l1_length].lru = 0;
-            }
-        }
-        readFromL2Address();
-    }
-}
-//L1 Read Function Call
-
-//L2 Read Function Call
-void Cache::readFromL2Address(void) {
-    if (nextLevel->cache_address == nullptr) {
-        //pretty much same as readFromL1Address honestly... Just with L2 information!
-        bool hit = false;
-        unsigned int hit_index = 0;
-        unsigned int lru_max = 0;
-
-        for (unsigned int i = 0; i < nextLevel->l1_assoc; i++) {
-            if (nextLevel->cache_structure[l2_index_addr + i * nextLevel->l1_length].tag == l2_tag_addr) {
-                hit = true;
-                hit_index = l2_index_addr + i * nextLevel->l1_length;
-                break;
-            }
-        }
-
-        if (hit) {
-            lru_max = nextLevel->cache_structure[hit_index].lru;
-            for (unsigned int i = 0; i < l2_assoc; i++) {
-                if (cache_structure[l2_index_addr + i * nextLevel->l1_length].lru < lru_max) {
-                    cache_structure[l2_index_addr + i * nextLevel->l1_length].lru += 1;
-                }
-            }
-            cache_structure[hit_index].lru = 0;
-        } else {
-            l2_reads_miss++;
-
-            for (unsigned int i = 0; i < l1_assoc; i++) {
-                if (cache_structure[l2_index_addr + i * nextLevel->l1_length].lru != (nextLevel->l1_assoc - 1)) {
-                    cache_structure[l2_index_addr + i * nextLevel->l1_length].lru += 1;
-                } else {
-                    if (cache_structure[l2_index_addr + i * nextLevel->l1_length].dirty == 'D') {
-                        l2_write_backs++;
-                        cache_structure[l2_index_addr + i * nextLevel->l1_length].dirty = 'N';
-                    }
-                    cache_structure[l2_index_addr + i * nextLevel->l1_length].tag = l2_tag_addr;
-                    cache_structure[l2_index_addr + i * nextLevel->l1_length].lru = 0;
-                }
-            }
-        }
-    } else {
-        //TODO this is the new function, have to account for it being slightly different
-        //          because it has address array and sectored data array
-    }
-}
-//L2 Read Function Call
-
-//L1 Write Function Call
-void Cache::writeToL1Address(void) {
-    bool hit = false;
-    unsigned int hit_index = 0;
-    unsigned int lru_max = 0;
-
-    for (unsigned int i = 0; i < l1_assoc; i++) {
-        if (cache_structure[l1_index_addr + i * l1_length].tag == l1_tag_addr) {
-            hit = true;
-            hit_index = l1_index_addr + i * l1_length;
-            break;
-        }
-    }
-
-    if (hit) {
-        lru_max = cache_structure[hit_index].lru;
-        for (unsigned int i = 0; i < l1_assoc; i++) {
-            if (cache_structure[l1_index_addr + i * l1_length].lru < lru_max) {
-                cache_structure[l1_index_addr + i * l1_length].lru += 1;
-            }
-        }
-        cache_structure[hit_index].lru = 0;
-        cache_structure[hit_index].dirty = 'D';
-    } else {
-        l1_writes_miss++;
-
-        for (unsigned int i = 0; i < l1_assoc; i++) {
-            if (cache_structure[l1_index_addr + i * l1_length].lru != (l1_assoc - 1)) {
-                cache_structure[l1_index_addr + i * l1_length].lru += 1;
-            } else {
-                if (cache_structure[l1_index_addr + i * l1_length].dirty == 'D') {
-                    if (nextLevel != nullptr) {
-                        writeToL2Address();
-                    }
-                    l1_write_backs++;
-                }
-                cache_structure[l1_index_addr + i * l1_length].tag = l1_tag_addr;
-                cache_structure[l1_index_addr + i * l1_length].lru = 0;
-                cache_structure[l1_index_addr + i * l1_length].dirty = 'D';
-            }
-        }
-        readFromL2Address();
-    }
-}
-//L1 Write Function Call
-
-//L2 Write Functon Call
-void Cache::writeToL2Address(void) {
-    if (nextLevel->cache_address == nullptr) {
-        //TODO pretty much same as writeToL1Address honestly...
-    } else {
-        //TODO this is the new function, have to account for it being slightly different
-        //          because it has address array and sectored data array
-    }
-}
-//L2 Write Function Call
-
 
 //Parse Hex Value to get Index and Tag
 unsigned long Cache::parseL2Sector(unsigned long hex) {
@@ -374,16 +257,234 @@ unsigned int Cache::getSelectionBitSize(void) {
 }
 //Getters
 
+//L1 Read Function Call
+void Cache::readFromL1Address(void) {
+    bool hit = false;
+    unsigned int hit_index = 0;
+    unsigned int lru_max = 0;
+
+    for (unsigned int i = 0; i < l1_assoc; i++) {
+        if (cache_structure[l1_index_addr + i * l1_length].tag == l1_tag_addr) {
+            hit = true;
+            hit_index = l1_index_addr + i * l1_length;
+            break;
+        }
+    }
+
+    if (hit) {
+        lru_max = cache_structure[hit_index].lru;
+        for (unsigned int i = 0; i < l1_assoc; i++) {
+            if (cache_structure[l1_index_addr + i * l1_length].lru < lru_max) {
+                cache_structure[l1_index_addr + i * l1_length].lru += 1;
+            }
+        }
+        cache_structure[hit_index].lru = 0;
+    } else {
+        l1_reads_miss++;
+
+        for (unsigned int i = 0; i < l1_assoc; i++) {
+            if (cache_structure[l1_index_addr + i * l1_length].lru != (l1_assoc - 1)) {
+                cache_structure[l1_index_addr + i * l1_length].lru += 1;
+            } else {
+                if (cache_structure[l1_index_addr + i * l1_length].dirty == 'D') {
+                    if (nextLevel != nullptr) {
+                        rebuildNormalL2Index(l1_index_addr, cache_structure[l1_index_addr + i * l1_length].tag);
+                        writeToL2Address();
+                    }
+                    l1_write_backs++;
+                    cache_structure[l1_index_addr + i * l1_length].dirty = 'N';
+                }
+                cache_structure[l1_index_addr + i * l1_length].tag = l1_tag_addr;
+                cache_structure[l1_index_addr + i * l1_length].lru = 0;
+            }
+        }
+        if (nextLevel != nullptr) {
+            Cache::readFromL2Address();
+        }
+    }
+}
+//L1 Read Function Call
+
+//L2 Read Function Call
+void Cache::readFromL2Address(void) {
+    l2_reads++;
+
+    if (nextLevel->cache_address == nullptr) {
+        //pretty much same as readFromL1Address honestly... Just with L2 information!
+        bool hit = false;
+        unsigned int hit_index = 0;
+        unsigned int lru_max = 0;
+
+        for (unsigned int i = 0; i < l2_assoc; i++) {
+            if (nextLevel->cache_structure[l2_index_addr + i * nextLevel->l1_length].tag == l2_tag_addr) {
+                hit = true;
+                hit_index = l2_index_addr + i * nextLevel->l1_length;
+                break;
+            }
+        }
+
+        if (hit) {
+            lru_max = nextLevel->cache_structure[hit_index].lru;
+            for (unsigned int i = 0; i < l2_assoc; i++) {
+                if (nextLevel->cache_structure[l2_index_addr + i * nextLevel->l1_length].lru < lru_max) {
+                    nextLevel->cache_structure[l2_index_addr + i * nextLevel->l1_length].lru += 1;
+                }
+            }
+            nextLevel->cache_structure[hit_index].lru = 0;
+        } else {
+            l2_reads_miss++;
+
+            for (unsigned int i = 0; i < l2_assoc; i++) {
+                if (nextLevel->cache_structure[l2_index_addr + i * nextLevel->l1_length].lru != (l2_assoc - 1)) {
+                    nextLevel->cache_structure[l2_index_addr + i * nextLevel->l1_length].lru += 1;
+                } else {
+                    if (nextLevel->cache_structure[l2_index_addr + i * nextLevel->l1_length].dirty == 'D') {
+                        l2_write_backs++;
+                        nextLevel->cache_structure[l2_index_addr + i * nextLevel->l1_length].dirty = 'N';
+                    }
+                    nextLevel->cache_structure[l2_index_addr + i * nextLevel->l1_length].tag = l2_tag_addr;
+                    nextLevel->cache_structure[l2_index_addr + i * nextLevel->l1_length].lru = 0;
+                }
+            }
+        }
+    } else {
+        //TODO this is the new function, have to account for it being slightly different
+        //          because it has address array and sectored data array
+        //this is how they look
+        //cache_address = new Cachesection[l1_length * l2_addr_tags];
+        //cache_sectored = new Cachesector[l1_length * l2_data_blocks];
+    }
+}
+//L2 Read Function Call
+
+//L1 Write Function Call
+void Cache::writeToL1Address(void) {
+    bool hit = false;
+    unsigned int hit_index = 0;
+    unsigned int lru_max = 0;
+
+    for (unsigned int i = 0; i < l1_assoc; i++) {
+        if (cache_structure[l1_index_addr + i * l1_length].tag == l1_tag_addr) {
+            hit = true;
+            hit_index = l1_index_addr + i * l1_length;
+            break;
+        }
+    }
+
+    if (hit) {
+        lru_max = cache_structure[hit_index].lru;
+        for (unsigned int i = 0; i < l1_assoc; i++) {
+            if (cache_structure[l1_index_addr + i * l1_length].lru < lru_max) {
+                cache_structure[l1_index_addr + i * l1_length].lru += 1;
+            }
+        }
+        cache_structure[hit_index].lru = 0;
+        cache_structure[hit_index].dirty = 'D';
+    } else {
+        l1_writes_miss++;
+
+        for (unsigned int i = 0; i < l1_assoc; i++) {
+            if (cache_structure[l1_index_addr + i * l1_length].lru != (l1_assoc - 1)) {
+                cache_structure[l1_index_addr + i * l1_length].lru += 1;
+            } else {
+                if (cache_structure[l1_index_addr + i * l1_length].dirty == 'D') {
+                    if (nextLevel != nullptr) {
+                        rebuildNormalL2Index(l1_index_addr, cache_structure[l1_index_addr + i * l1_length].tag);
+                        writeToL2Address();
+                    }
+                    l1_write_backs++;
+                }
+                cache_structure[l1_index_addr + i * l1_length].tag = l1_tag_addr;
+                cache_structure[l1_index_addr + i * l1_length].lru = 0;
+                cache_structure[l1_index_addr + i * l1_length].dirty = 'D';
+            }
+        }
+        if (nextLevel != nullptr) {
+            Cache::readFromL2Address();
+        }
+    }
+}
+//L1 Write Function Call
+
+//L2 Write Functon Call
+void Cache::writeToL2Address(void) {
+    l2_writes++;
+
+    if (nextLevel->cache_address == nullptr) {
+        //pretty much same as readFromL1Address honestly... Just with L2 information!
+        bool hit = false;
+        unsigned int hit_index = 0;
+        unsigned int lru_max = 0;
+
+        for (unsigned int i = 0; i < l2_assoc; i++) {
+            if (nextLevel->cache_structure[l2_write_index_addr + i * nextLevel->l1_length].tag == l2_write_tag_addr) {
+                hit = true;
+                hit_index = l2_write_index_addr + i * nextLevel->l1_length;
+                break;
+            }
+        }
+
+        if (hit) {
+            lru_max = nextLevel->cache_structure[hit_index].lru;
+            for (unsigned int i = 0; i < l2_assoc; i++) {
+                if (nextLevel->cache_structure[l2_write_index_addr + i * nextLevel->l1_length].lru < lru_max) {
+                    nextLevel->cache_structure[l2_write_index_addr + i * nextLevel->l1_length].lru += 1;
+                }
+            }
+            nextLevel->cache_structure[hit_index].lru = 0;
+            nextLevel->cache_structure[hit_index].dirty = 'D';
+        } else {
+            l2_writes_miss++;
+
+            for (unsigned int i = 0; i < l2_assoc; i++) {
+                if (nextLevel->cache_structure[l2_write_index_addr + i * nextLevel->l1_length].lru != (l2_assoc - 1)) {
+                    nextLevel->cache_structure[l2_write_index_addr + i * nextLevel->l1_length].lru += 1;
+                } else {
+                    if (nextLevel->cache_structure[l2_write_index_addr + i * nextLevel->l1_length].dirty == 'D') {
+                        l2_write_backs++;
+                    }
+                    nextLevel->cache_structure[l2_write_index_addr + i * nextLevel->l1_length].tag = l2_write_tag_addr;
+                    nextLevel->cache_structure[l2_write_index_addr + i * nextLevel->l1_length].lru = 0;
+                    nextLevel->cache_structure[l2_write_index_addr + i * nextLevel->l1_length].dirty = 'D';
+                }
+            }
+        }
+    } else {
+        //TODO this is the new function, have to account for it being slightly different
+        //          because it has address array and sectored data array
+    }
+}
+//L2 Write Function Call
+
+//Rebuild addresses for writeback
+void Cache::rebuildNormalL2Index(unsigned long index, unsigned long tag) {
+    //rebuild so that we get index, tag for L2
+    unsigned long address = (tag << l1_index_bits) | index;
+    l2_write_index_addr = (((1 << l2_index_bits) - 1) & address);
+    l2_write_tag_addr = (address >> l2_index_bits);
+}
+void Cache::rebuildSectoredL2Index(unsigned long index, unsigned long tag) {
+    //rebuild so that we get sector, index, selection, tag for L2
+    unsigned long address = (tag << l1_index_bits) | index;
+    l2_write_sector_addr = (((1 << l2_sector_bits) - 1) & address);
+    address = address >> l2_sector_bits;
+    l2_write_index_addr = (((1 << l2_index_bits) - 1) & address);
+    address = address >> l2_index_bits;
+    l2_write_selection_addr = (((1 << l2_selection_bits) - 1) & address);
+    l2_write_tag_addr = (address >> l2_selection_bits);
+}
+//Rebuild addresses for writeback
+
 //Prints out desired values with formatting
 void Cache::printData(void) {
     Cache::sortData();
     if (nextLevel != nullptr) {
-        memory_traffic = nextLevel->l1_reads_miss + nextLevel->l1_writes_miss + nextLevel->l1_write_backs;
+        memory_traffic = l2_reads_miss + l2_writes_miss + l2_write_backs;
     } else {
         memory_traffic = l1_reads_miss + l1_writes_miss + l1_write_backs;
     }
     l1_miss_rate = double((l1_reads_miss + l1_writes_miss)) / double((l1_reads + l1_writes));
-    l2_miss_rate = double((l2_reads_miss + l2_writes_miss)) / double((l2_reads + l2_writes));
+    l2_miss_rate = double(l2_reads_miss) / double(l2_reads);
 
     //Header to printout
     cout << "  ===== Simulator configuration =====" << endl;
@@ -436,7 +537,6 @@ void Cache::printData(void) {
             }
             cout << endl;
         }
-        cout << endl;
     }
     //L2 Regular Cache Tag Printout
     //L2 Sectored Cache Tag Printout

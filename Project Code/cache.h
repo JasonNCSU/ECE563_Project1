@@ -34,6 +34,9 @@ public:
 
 class Cache {
 private:
+    void addressBlockInitializer(void);
+    void dataBlockInitializer(void);
+
     void hexManipulator(unsigned long hex);
     void readFromL1Address(void);
     void writeToL1Address(void);
@@ -53,6 +56,9 @@ private:
     unsigned long parseL1Tag(unsigned long hex);
     unsigned long parseL2Tag(unsigned long hex);
     unsigned long parseL2SectorTag(unsigned long hex);
+
+    void rebuildNormalL2Index(unsigned long index, unsigned long tag);
+    void rebuildSectoredL2Index(unsigned long index, unsigned long tag);
 
     unsigned int blocksize;
     unsigned int l1_size;
@@ -97,6 +103,11 @@ private:
     unsigned long l2_selection_addr;
     unsigned long l1_tag_addr;
     unsigned long l2_tag_addr;
+
+    unsigned long l2_write_sector_addr;
+    unsigned long l2_write_index_addr;
+    unsigned long l2_write_selection_addr;
+    unsigned long l2_write_tag_addr;
 
 public:
     Cache(void);

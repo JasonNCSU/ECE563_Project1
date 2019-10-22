@@ -513,7 +513,7 @@ void Cache::writeToL2Address(void) {
             }
         }
         if (!data_hit) {
-            l2_reads_miss++;
+            l2_writes_miss++;
             //check for miss type
             if ((sectPtr->tag == 0) || (sectPtr->valid = 'I')) {
                 l2_sector_miss++;
@@ -528,14 +528,14 @@ void Cache::writeToL2Address(void) {
                 if (sectPtr->dirty == 'D') {
                     l2_write_backs++;
                 }
-                sectPtr->dirty = 'N';
+                sectPtr->dirty = 'D';
             } else {
                 for (unsigned int i = 0; i < l2_data_blocks; i++) {
                     Cachesector *cachePtrLoop = &nextLevel->cache_sectored[l2_write_index_addr + i * nextLevel->l1_length];
                     if (cachePtrLoop->select == l2_write_selection_addr) {
                         if (cachePtrLoop->dirty == 'D') {
                             l2_write_backs++;
-                            cachePtrLoop->dirty = 'N';
+                            cachePtrLoop->dirty = 'D';
                         }
                         cachePtrLoop->valid = 'I';
                     }
@@ -548,7 +548,7 @@ void Cache::writeToL2Address(void) {
                 if (sectPtr->dirty == 'D') {
                     l2_write_backs++;
                 }
-                sectPtr->dirty = 'N';
+                sectPtr->dirty = 'D';
             }
         }
     }
@@ -653,7 +653,7 @@ void Cache::printData(void) {
                 cout << left << setfill(' ') << setw(2) << " ";
             }
             for (unsigned int j = 0; j < nextLevel->l2_addr_tags; j++) {
-                cout << hex << nextLevel->cache_sectored[i + j * nextLevel->l1_length].tag << "		";
+                cout << hex << nextLevel->cache_address[i + j * nextLevel->l1_length].tag << "		";
             }
             cout << "|| " << endl;
         }

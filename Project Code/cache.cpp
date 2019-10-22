@@ -79,14 +79,14 @@ Cache::Cache(int bs, int l1s, int l1a, int l2s, int l2a, int l2db, int l2at, cha
     //for l2 cache, if we are using sectored cache we will use first statement
     //otherwise make a standard cache structure like before
     if ((l2_size == 0) && (l2_data_blocks > 1)) {
-        l1_length = l1s/(bs*l1a*l2_data_blocks);
+        l1_length = l1_size/(blocksize*l1_assoc*l2_data_blocks);
         cache_address = new Cachesection[l1_length * l2_addr_tags];
         cache_sectored = new Cachesector[l1_length * l2_data_blocks];
-        Cache::addressBlockInitializer();
-        Cache::dataBlockInitializer();
+        //Cache::addressBlockInitializer();
+        //Cache::dataBlockInitializer();
         cache_structure = nullptr;
     } else {
-        l1_length = l1s/(bs*l1a);
+        l1_length = l1_size/(blocksize*l1_assoc);
         cache_structure = new Cacheway[l1_length * l1_assoc];
         cache_address = nullptr;
         cache_sectored = nullptr;
@@ -357,18 +357,58 @@ void Cache::readFromL2Address(void) {
         //cache_sectored = new Cachesector[l1_length * l2_data_blocks];
         bool addr_hit = false;
         bool data_hit = false;
-        if (nextLevel->cache_address[l2_index_addr + l2_selection_addr * nextLevel->l1_length].tag == l2_addr_tags) {
+        if (nextLevel->cache_address[l2_index_addr + l2_selection_addr * nextLevel->l1_length].tag == l2_tag_addr) {
             addr_hit = true;
         }
         if (addr_hit) {
-            if ((nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].tag == l2_addr_tags) && (nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].select == l2_selection_addr)) {
+            if ((nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].tag == l2_tag_addr) && (nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].select == l2_selection_addr)) {
                 data_hit = true;
             }
         }
         if (!data_hit) {
+            l2_reads_miss++;
+            //check for miss type
+            if ((nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].tag == 0) || (nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].valid = 'I')) {
+                l2_sector_miss++;
+            } else {
+                l2_cache_miss++;
+            }
 
+            if (addr_hit) {
+                nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].tag = l2_tag_addr;
+                nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].select = l2_selection_addr;
+                nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].valid = 'V';
+                if (nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].dirty == 'D') {
+                    l2_write_backs++;
+                }
+                nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].dirty = 'N';
+            } else {
+                for (unsigned int i = 0; i < l2_data_blocks; i++) {
+                    if (nextLevel->cache_sectored[l2_index_addr + i * nextLevel->l1_length].select == l2_selection_addr) {
+                        if (nextLevel->cache_sectored[l2_index_addr + i * nextLevel->l1_length].dirty == 'D') {
+                            l2_write_backs++;
+                            nextLevel->cache_sectored[l2_index_addr + i * nextLevel->l1_length].dirty = 'N';
+                        }
+                        nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].valid = 'I';
+                    }
+                }
+                nextLevel->cache_address[l2_index_addr + l2_selection_addr * nextLevel->l1_length].tag = l2_tag_addr;
+                cout << nextLevel->cache_address[l2_index_addr + l2_selection_addr * nextLevel->l1_length].tag;
+                nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].tag = l2_tag_addr;
+                cout << nextLevel->cache_sectored[l2_index_addr + l2_selection_addr * nextLevel->l1_length].tag;
+                nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].select = l2_selection_addr;
+                cout << nextLevel->cache_sectored[l2_index_addr + l2_selection_addr * nextLevel->l1_length].select;
+                nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].valid = 'V';
+                cout << nextLevel->cache_sectored[l2_index_addr + l2_selection_addr * nextLevel->l1_length].valid;
+                if (nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].dirty == 'D') {
+                    l2_write_backs++;
+                }
+                nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].dirty = 'N';
+                cout << nextLevel->cache_sectored[l2_index_addr + l2_selection_addr * nextLevel->l1_length].dirty;
+            }
         }
     }
+    //Cache::printData();
 }
 //L2 Read Function Call
 
@@ -476,16 +516,51 @@ void Cache::writeToL2Address(void) {
         //cache_sectored = new Cachesector[l1_length * l2_data_blocks];
         bool addr_hit = false;
         bool data_hit = false;
-        if (nextLevel->cache_address[l2_index_addr + l2_selection_addr * nextLevel->l1_length].tag == l2_addr_tags) {
+        if (nextLevel->cache_address[l2_write_index_addr + l2_write_selection_addr * nextLevel->l1_length].tag == l2_write_tag_addr) {
             addr_hit = true;
         }
         if (addr_hit) {
-            if ((nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].tag == l2_addr_tags) && (nextLevel->cache_sectored[l2_index_addr + l2_sector_addr * nextLevel->l1_length].select == l2_selection_addr)) {
+            if ((nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].tag == l2_write_tag_addr) && (nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].select == l2_write_selection_addr)) {
                 data_hit = true;
             }
         }
         if (!data_hit) {
+            l2_reads_miss++;
+            //check for miss type
+            if ((nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].tag == 0) || (nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].valid = 'I')) {
+                l2_sector_miss++;
+            } else {
+                l2_cache_miss++;
+            }
 
+            if (addr_hit) {
+                nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].tag = l2_write_tag_addr;
+                nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].select = l2_write_selection_addr;
+                nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].valid = 'V';
+                if (nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].dirty == 'D') {
+                    l2_write_backs++;
+                }
+                nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].dirty = 'N';
+            } else {
+                for (unsigned int i = 0; i < l2_data_blocks; i++) {
+                    if (nextLevel->cache_sectored[l2_write_index_addr + i * nextLevel->l1_length].select == l2_write_selection_addr) {
+                        if (nextLevel->cache_sectored[l2_write_index_addr + i * nextLevel->l1_length].dirty == 'D') {
+                            l2_write_backs++;
+                            nextLevel->cache_sectored[l2_write_index_addr + i * nextLevel->l1_length].dirty = 'N';
+                        }
+                        nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].valid = 'I';
+                    }
+                }
+                nextLevel->cache_address[l2_write_index_addr + l2_write_selection_addr * nextLevel->l1_length].tag = l2_write_tag_addr;
+                //nextLevel->cache_structure[l2_write_index_addr + i * nextLevel->l1_length].tag == l2_write_tag_addr
+                nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].tag = l2_write_tag_addr;
+                nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].select = l2_write_selection_addr;
+                nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].valid = 'V';
+                if (nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].dirty == 'D') {
+                    l2_write_backs++;
+                }
+                nextLevel->cache_sectored[l2_write_index_addr + l2_write_sector_addr * nextLevel->l1_length].dirty = 'N';
+            }
         }
     }
 }

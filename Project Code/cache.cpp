@@ -286,7 +286,11 @@ void Cache::readFromL1Address(void) {
             } else {
                 if (cache_structure[l1_index_addr + i * l1_length].dirty == 'D') {
                     if (nextLevel != nullptr) {
-                        rebuildNormalL2Index(l1_index_addr, cache_structure[l1_index_addr + i * l1_length].tag);
+                        if (l2_data_blocks < 2) {
+                            rebuildNormalL2Index(l1_index_addr, cache_structure[l1_index_addr + i * l1_length].tag);
+                        } else {
+                            rebuildSectoredL2Index(l1_index_addr, cache_structure[l1_index_addr + i * l1_length].tag);
+                        }
                         writeToL2Address();
                     }
                     l1_write_backs++;
@@ -387,7 +391,11 @@ void Cache::writeToL1Address(void) {
             } else {
                 if (cache_structure[l1_index_addr + i * l1_length].dirty == 'D') {
                     if (nextLevel != nullptr) {
-                        rebuildNormalL2Index(l1_index_addr, cache_structure[l1_index_addr + i * l1_length].tag);
+                        if (l2_data_blocks < 2) {
+                            rebuildNormalL2Index(l1_index_addr, cache_structure[l1_index_addr + i * l1_length].tag);
+                        } else {
+                            rebuildSectoredL2Index(l1_index_addr, cache_structure[l1_index_addr + i * l1_length].tag);
+                        }
                         writeToL2Address();
                     }
                     l1_write_backs++;

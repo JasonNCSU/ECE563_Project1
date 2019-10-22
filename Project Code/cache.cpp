@@ -489,6 +489,9 @@ void Cache::writeToL1Address(void) {
                         } else {
                             rebuildSectoredL2Index(l1_index_addr, cache_structure[l1_index_addr + i * l1_length].tag);
                         }
+#ifdef DEBUG_OUTPUT
+                        cout << "L2 write: " << hex << "(C0 " << l2_write_sector_addr << ", C1 " << l2_write_index_addr << ", C2 " << l2_write_selection_addr << ", C3 " << l2_write_tag_addr << ")" << endl;
+#endif
                         writeToL2Address();
                     }
                     l1_write_backs++;

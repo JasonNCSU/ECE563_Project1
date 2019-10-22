@@ -150,18 +150,16 @@ void Cache::lruInitializer(void) {
 }
 
 void Cache::addressBlockInitializer(void) {
-    for (int i = 0; i < l1_length; i++) {
-        for (int j = 0; j < l2_addr_tags; j++) {
+    for (unsigned int i = 0; i < l1_length; i++) {
+        for (unsigned int j = 0; j < l2_addr_tags; j++) {
             cache_address[i + j * l1_length].tag = 0;
         }
     }
 }
 
 void Cache::dataBlockInitializer(void) {
-//cache_address = new Cachesection[l1_length * l2_addr_tags];
-//        cache_sectored = new Cachesector[l1_length * l2_data_blocks];
-    for (int i = 0; i < l1_length; i++) {
-        for (int j = 0; j < l2_data_blocks; j++) {
+    for (unsigned int i = 0; i < l1_length; i++) {
+        for (unsigned int j = 0; j < l2_data_blocks; j++) {
             cache_sectored[i + j * l1_length].tag = 0;
             cache_sectored[i + j * l1_length].dirty = 'N';
             cache_sectored[i + j * l1_length].valid = 'I';

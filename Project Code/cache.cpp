@@ -167,14 +167,14 @@ void Cache::cpuRequest(char mode, unsigned long address) {
 #endif
     if (mode == 'r') {
 #ifdef DEBUG_OUTPUT
-        cout << "# " << dec << run_num << ": read: " << hex << address << endl;
+        cout << "# " << dec << run_num << ": read " << hex << address << endl;
         cout << "L1 read: " << hex << address << " (tag " << l1_tag_addr << dec << ", index " << l1_index_addr << ")" << endl;
 #endif
         l1_reads++;
         Cache::readFromL1Address();
     } else {
 #ifdef DEBUG_OUTPUT
-        cout << "# " << dec << run_num << ": write: " << hex << address << endl;
+        cout << "# " << dec << run_num << ": write " << hex << address << endl;
         cout << "L1 write: " << hex << address << " (tag " << l1_tag_addr << dec << ", index " << l1_index_addr << ")" << endl;
 #endif
         l1_writes++;

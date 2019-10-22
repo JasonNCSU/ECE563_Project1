@@ -222,7 +222,14 @@ void Cache::readFromL1Address(void) {
 //L1 Read Function Call
 
 //L2 Read Function Call
-
+void Cache::readFromL2Address(void) {
+    if (nextLevel->cache_address == nullptr) {
+        //TODO pretty much same as readFromL1Address honestly...
+    } else {
+        //TODO this is the new function, have to account for it being slightly different
+        //          because it has address array and sectored data array
+    }
+}
 //L2 Read Function Call
 
 //L1 Write Function Call
@@ -272,7 +279,14 @@ void Cache::writeToL1Address(void) {
 //L1 Write Function Call
 
 //L2 Write Functon Call
-
+void Cache::writeToL2Address(void) {
+    if (nextLevel->cache_address == nullptr) {
+        //TODO pretty much same as writeToL1Address honestly...
+    } else {
+        //TODO this is the new function, have to account for it being slightly different
+        //          because it has address array and sectored data array
+    }
+}
 //L2 Write Function Call
 
 
